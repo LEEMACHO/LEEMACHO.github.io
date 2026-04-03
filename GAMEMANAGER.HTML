@@ -1,33 +1,46 @@
-# 🏁 8라인 달리기 경주 게임
-
-브라우저에서 실행되는 간단한 경주 게임입니다.  
-GitHub Pages를 통해 누구나 플레이할 수 있습니다.
-
-## 실행 방법
-1. 저장소를 클론하거나 다운로드합니다.
-2. `index.html` 파일을 브라우저에서 열면 게임이 실행됩니다.
-3. 또는 GitHub Pages를 활성화하면 웹에서 바로 플레이할 수 있습니다.
-
-## 게임 설명
-- 8개의 라인에 러너가 동시에 출발합니다.
-- 경기 중 속도가 랜덤하게 변합니다.
-- 결승선에 먼저 도달한 러너가 우승합니다.
-
-## 코드 예시
-게임의 핵심은 `index.html` 파일에 있습니다:
-
-```html
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <title>8라인 달리기 경주</title>
   <style>
-    .track { position: relative; width: 800px; height: 50px; border: 1px solid #333; margin: 10px auto; }
-    .runner { position: absolute; width: 40px; height: 40px;
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f5f5f5;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    .track {
+      position: relative;
+      width: 800px;
+      height: 50px;
+      border: 1px solid #333;
+      margin: 10px auto;
+      background: #fff;
+    }
+    .runner {
+      position: absolute;
+      width: 40px;
+      height: 40px;
       background-image: url('https://raw.githubusercontent.com/LEEMACHO/LEEMACHO.github.io/refs/heads/main/RUNNER.png');
-      background-size: cover; top: 5px; left: 0; }
+      background-size: cover;
+      background-repeat: no-repeat;
+      top: 5px;
+      left: 0;
+    }
+    #result {
+      font-weight: bold;
+      color: #d32f2f;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -35,32 +48,42 @@ GitHub Pages를 통해 누구나 플레이할 수 있습니다.
   <button onclick="startRace()">경기 시작!</button>
   <div id="race"></div>
   <p id="result"></p>
+
   <script>
     const raceDiv = document.getElementById("race");
     const runners = [];
     const trackLength = 760;
+
+    // 8개의 트랙과 러너 생성
     for (let i = 0; i < 8; i++) {
       const track = document.createElement("div");
       track.className = "track";
+
       const runner = document.createElement("div");
       runner.className = "runner";
-      runner.style.filter = `hue-rotate(${i * 45}deg)`;
+      runner.style.filter = `hue-rotate(${i * 45}deg)`; // 색상 변형으로 구분
+
       track.appendChild(runner);
       raceDiv.appendChild(track);
+
       runners.push({ element: runner, pos: 0, speed: Math.random() * 3 + 1 });
     }
+
     let raceInterval;
+
     function startRace() {
       document.getElementById("result").textContent = "";
       runners.forEach(r => { r.pos = 0; r.element.style.left = "0px"; });
       clearInterval(raceInterval);
       raceInterval = setInterval(updateRace, 50);
     }
+
     function updateRace() {
       runners.forEach(r => {
         if (Math.random() < 0.1) r.speed = Math.random() * 3 + 1;
         r.pos += r.speed;
         r.element.style.left = r.pos + "px";
+
         if (r.pos >= trackLength) {
           clearInterval(raceInterval);
           document.getElementById("result").textContent =
