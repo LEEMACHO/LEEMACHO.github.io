@@ -2,95 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>8라인 달리기 경주</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background: #f5f5f5;
-    }
-    h1 {
-      margin-top: 20px;
-    }
-    .track {
-      position: relative;
-      width: 800px;
-      height: 50px;
-      border: 1px solid #333;
-      margin: 10px auto;
-      background: #fff;
-    }
-    .runner {
-      position: absolute;
-      width: 40px;
-      height: 40px;
-      background-image: url('https://raw.githubusercontent.com/LEEMACHO/LEEMACHO.github.io/refs/heads/main/RUNNER.png');
-      background-size: cover;
-      background-repeat: no-repeat;
-      top: 5px;
-      left: 0;
-    }
-    #result {
-      font-weight: bold;
-      color: #d32f2f;
-      margin-top: 20px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-  </style>
+  <title>🏁 8라인 달리기 경주 🏁</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>🏁 8라인 달리기 경주 🏁</h1>
-  <button onclick="startRace()">경기 시작!</button>
+  <button onclick="game.startRace()">경기 시작!</button>
   <div id="race"></div>
   <p id="result"></p>
 
-  <script>
-    const raceDiv = document.getElementById("race");
-    const runners = [];
-    const trackLength = 760;
-
-    // 8개의 트랙과 러너 생성
-    for (let i = 0; i < 8; i++) {
-      const track = document.createElement("div");
-      track.className = "track";
-
-      const runner = document.createElement("div");
-      runner.className = "runner";
-      runner.style.filter = `hue-rotate(${i * 45}deg)`; // 색상 변형으로 구분
-
-      track.appendChild(runner);
-      raceDiv.appendChild(track);
-
-      runners.push({ element: runner, pos: 0, speed: Math.random() * 3 + 1 });
-    }
-
-    let raceInterval;
-
-    function startRace() {
-      document.getElementById("result").textContent = "";
-      runners.forEach(r => { r.pos = 0; r.element.style.left = "0px"; });
-      clearInterval(raceInterval);
-      raceInterval = setInterval(updateRace, 50);
-    }
-
-    function updateRace() {
-      runners.forEach(r => {
-        if (Math.random() < 0.1) r.speed = Math.random() * 3 + 1;
-        r.pos += r.speed;
-        r.element.style.left = r.pos + "px";
-
-        if (r.pos >= trackLength) {
-          clearInterval(raceInterval);
-          document.getElementById("result").textContent =
-            "우승자: " + (runners.indexOf(r) + 1) + "번 러너!";
-        }
-      });
-    }
-  </script>
+  <script src="gamemanager.js"></script>
 </body>
 </html>
