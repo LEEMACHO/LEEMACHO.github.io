@@ -5,7 +5,6 @@ class Runner {
     this.speed = Math.random() * 3 + 1;
     this.trackLength = trackLength;
 
-    // 트랙과 러너 DOM 생성
     this.track = document.createElement("div");
     this.track.className = "track";
 
@@ -61,5 +60,4 @@ class GameManager {
   }
 }
 
-// 전역에서 사용할 게임 객체 생성
 const game = new GameManager(8, 760);
