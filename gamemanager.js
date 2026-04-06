@@ -41,9 +41,11 @@ class Runner {
         break;
 
       case 1: // 우측 곡선 (600,0 → 800,200 → 600,400)
-        // Quadratic Bezier: P0=(600,0), P1=(800,200), P2=(600,400)
-        x = (1 - this.t) ** 2 * 600 + 2 * (1 - this.t) * this.t * 800 + this.t ** 2 * 600;
-        y = (1 - this.t) ** 2 * 0 + 2 * (1 - this.t) * this.t * 200 + this.t ** 2 * 400;
+        const cxR = 600, cyR = 200, rR = 200;
+        // θ: -90° → +90°
+        const thetaR = -Math.PI/2 + this.t * Math.PI;
+        x = cxR + rR * Math.cos(thetaR);
+        y = cyR + rR * Math.sin(thetaR);
         break;
 
       case 2: // 하단 직선 (600,400 → 200,400)
@@ -52,9 +54,11 @@ class Runner {
         break;
 
       case 3: // 좌측 곡선 (200,400 → 0,200 → 200,0)
-        // Quadratic Bezier: P0=(200,400), P1=(0,200), P2=(200,0)
-        x = (1 - this.t) ** 2 * 200 + 2 * (1 - this.t) * this.t * 0 + this.t ** 2 * 200;
-        y = (1 - this.t) ** 2 * 400 + 2 * (1 - this.t) * this.t * 200 + this.t ** 2 * 0;
+        const cxL = 200, cyL = 200, rL = 200;
+        // θ: +90° → +270°
+        const thetaL = Math.PI/2 + this.t * Math.PI;
+        x = cxL + rL * Math.cos(thetaL);
+        y = cyL + rL * Math.sin(thetaL);
         break;
 
       case 4: // 결승선 (200,0 → 400,0)
@@ -97,3 +101,4 @@ class GameManager {
 }
 
 const game = new GameManager(8);
+
