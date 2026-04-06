@@ -15,7 +15,7 @@ body {
   width: var(--map-width);
   height: var(--map-height);
   border: 10px solid #333;
-  border-radius: 50%; /* 타원형 경기장 */
+  border-radius: 200px; /* 직선+곡선 느낌 */
   margin: 20px auto;
   position: relative;
 }
