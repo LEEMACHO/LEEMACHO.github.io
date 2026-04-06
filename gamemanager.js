@@ -2,8 +2,11 @@ class Runner {
   constructor(index) {
     this.index = index;
     this.segment = 0;
-    this.t = 0; // 구간 진행도 (0~1)
+    this.t = 0;
     this.speed = Math.random() * 0.01 + 0.005;
+
+    // 레인 오프셋 (러너마다 다르게)
+    this.laneOffset = (index - 4) * 15; // -60 ~ +60 px
 
     this.element = document.createElement("div");
     this.element.className = "runner";
@@ -15,7 +18,7 @@ class Runner {
     this.segment = 0;
     this.t = 0;
     this.speed = Math.random() * 0.01 + 0.005;
-    this.updatePosition(400, 0); // 출발점 강제 지정
+    this.updatePosition(400, 0 + this.laneOffset); // 출발점 (상단 직선 중앙)
   }
 
   updatePosition(x, y) {
@@ -23,13 +26,19 @@ class Runner {
   }
 
   move() {
-    this.t += this.speed;
+    // 곡선 구간에서는 속도를 줄임
+    let effectiveSpeed = this.speed;
+    if (this.segment === 1 || this.segment === 3) {
+      effectiveSpeed *= 0.7;
+    }
+
+    this.t += effectiveSpeed;
     if (this.t > 1) {
       this.t = 0;
       this.segment++;
       if (this.segment > 4) {
         this.segment = 0;
-        return true; // 한 바퀴 완료
+        return true;
       }
     }
 
@@ -37,12 +46,13 @@ class Runner {
     switch (this.segment) {
       case 0: // 상단 직선 (200,0 → 600,0)
         x = 200 + 400 * this.t;
-        y = 0;
+        // 곡선 진입 전 미리 라인 붙기
+        y = 0 + this.laneOffset + (this.speed * 50 * this.t);
         break;
 
-      case 1: // 우측 곡선 (600,0 → 800,200 → 600,400)
-        const cxR = 600, cyR = 200, rR = 200;
-        // θ: -90° → +90°
+      case 1: // 우측 곡선
+        const cxR = 600, cyR = 200;
+        const rR = 200 + this.laneOffset + this.speed * 50;
         const thetaR = -Math.PI/2 + this.t * Math.PI;
         x = cxR + rR * Math.cos(thetaR);
         y = cyR + rR * Math.sin(thetaR);
@@ -50,12 +60,13 @@ class Runner {
 
       case 2: // 하단 직선 (600,400 → 200,400)
         x = 600 - 400 * this.t;
-        y = 400;
+        // 곡선 진입 전 미리 라인 붙기
+        y = 400 + this.laneOffset - (this.speed * 50 * this.t);
         break;
 
-      case 3: // 좌측 곡선 (200,400 → 0,200 → 200,0)
-        const cxL = 200, cyL = 200, rL = 200;
-        // θ: +90° → +270°
+      case 3: // 좌측 곡선
+        const cxL = 200, cyL = 200;
+        const rL = 200 + this.laneOffset + this.speed * 50;
         const thetaL = Math.PI/2 + this.t * Math.PI;
         x = cxL + rL * Math.cos(thetaL);
         y = cyL + rL * Math.sin(thetaL);
@@ -63,7 +74,7 @@ class Runner {
 
       case 4: // 결승선 (200,0 → 400,0)
         x = 200 + 200 * this.t;
-        y = 0;
+        y = 0 + this.laneOffset;
         break;
     }
 
@@ -101,4 +112,3 @@ class GameManager {
 }
 
 const game = new GameManager(8);
-
