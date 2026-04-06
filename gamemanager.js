@@ -5,8 +5,8 @@ class Runner {
     this.t = 0;
     this.speed = Math.random() * 0.01 + 0.005;
 
-    // 레인 오프셋 (러너마다 다르게)
-    this.laneOffset = (index - 4) * 15; // -60 ~ +60 px
+    // 레인 오프셋: 항상 0 ~ 120 범위로 제한
+    this.laneOffset = Math.min(index * 20, 120);
 
     this.element = document.createElement("div");
     this.element.className = "runner";
@@ -46,13 +46,12 @@ class Runner {
     switch (this.segment) {
       case 0: // 상단 직선 (200,0 → 600,0)
         x = 200 + 400 * this.t;
-        // 곡선 진입 전 미리 라인 붙기
         y = 0 + this.laneOffset + (this.speed * 50 * this.t);
         break;
 
       case 1: // 우측 곡선 (외곽만 사용)
         const cxR = 600, cyR = 200;
-        const rR = 200 + Math.abs(this.laneOffset) + this.speed * 50; // 외곽 기준
+        const rR = 200 + this.laneOffset + this.speed * 50;
         const thetaR = -Math.PI/2 + this.t * Math.PI;
         x = cxR + rR * Math.cos(thetaR);
         y = cyR + rR * Math.sin(thetaR);
@@ -60,13 +59,12 @@ class Runner {
 
       case 2: // 하단 직선 (600,400 → 200,400)
         x = 600 - 400 * this.t;
-        // 곡선 진입 전 미리 라인 붙기
         y = 400 + this.laneOffset - (this.speed * 50 * this.t);
         break;
 
       case 3: // 좌측 곡선 (외곽만 사용)
         const cxL = 200, cyL = 200;
-        const rL = 200 + Math.abs(this.laneOffset) + this.speed * 50; // 외곽 기준
+        const rL = 200 + this.laneOffset + this.speed * 50;
         const thetaL = Math.PI/2 + this.t * Math.PI;
         x = cxL + rL * Math.cos(thetaL);
         y = cyL + rL * Math.sin(thetaL);
@@ -112,3 +110,4 @@ class GameManager {
 }
 
 const game = new GameManager(8);
+
