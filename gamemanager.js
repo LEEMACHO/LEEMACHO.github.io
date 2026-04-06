@@ -46,7 +46,7 @@ class Runner {
     switch (this.segment) {
       case 0: // 상단 직선 (200,0 → 600,0)
         x = 200 + 400 * this.t;
-        y = 0 + this.laneOffset + (this.speed * 50 * this.t);
+        y = 0 + this.laneOffset + (this.speed * 50 * this.t); // 외곽 유지
         break;
 
       case 1: // 우측 곡선 (외곽만 사용)
@@ -59,7 +59,7 @@ class Runner {
 
       case 2: // 하단 직선 (600,400 → 200,400)
         x = 600 - 400 * this.t;
-        y = 400 + this.laneOffset - (this.speed * 50 * this.t);
+        y = 400 - this.laneOffset - (this.speed * 50 * this.t); // 부호 반전 → 외곽 유지
         break;
 
       case 3: // 좌측 곡선 (외곽만 사용)
