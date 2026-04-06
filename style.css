@@ -1,25 +1,32 @@
+:root {
+  --map-width: 800px;
+  --map-height: 400px;
+  --runner-size: 40px;
+  --runner-image: url('https://raw.githubusercontent.com/LEEMACHO/LEEMACHO.github.io/refs/heads/main/RUNNER.png');
+}
+
 body {
   font-family: sans-serif;
   text-align: center;
   background: #f5f5f5;
 }
-.track {
+
+.stadium {
+  width: var(--map-width);
+  height: var(--map-height);
+  border: 10px solid #333;
+  border-radius: 50%; /* 타원형 경기장 */
+  margin: 20px auto;
   position: relative;
-  width: 800px;
-  height: 50px;
-  border: 1px solid #333;
-  margin: 10px auto;
-  background: #fff;
 }
+
 .runner {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background-image: url('https://raw.githubusercontent.com/LEEMACHO/LEEMACHO.github.io/refs/heads/main/RUNNER.png');
+  width: var(--runner-size);
+  height: var(--runner-size);
+  background-image: var(--runner-image);
   background-size: contain;
   background-repeat: no-repeat;
-  top: 5px;
-  left: 0;
+  position: absolute;
 }
 #result {
   font-weight: bold;
