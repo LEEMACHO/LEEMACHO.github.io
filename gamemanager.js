@@ -15,7 +15,7 @@ class Runner {
     this.segment = 0;
     this.t = 0;
     this.speed = Math.random() * 0.01 + 0.005;
-    this.updatePosition(300, 0); // 출발점 강제 지정
+    this.updatePosition(400, 0); // 출발점 강제 지정
   }
 
   updatePosition(x, y) {
@@ -27,7 +27,7 @@ class Runner {
     if (this.t > 1) {
       this.t = 0;
       this.segment++;
-      if (this.segment > 6) {
+      if (this.segment > 4) {
         this.segment = 0;
         return true; // 한 바퀴 완료
       }
@@ -35,32 +35,30 @@ class Runner {
 
     let x, y;
     switch (this.segment) {
-      case 0: // 출발점에서 (500,0)까지 직선
-        x = 300 + 200 * this.t;
+      case 0: // 상단 직선 (200,0 → 600,0)
+        x = 200 + 400 * this.t;
         y = 0;
         break;
-      case 1: // (500,0) -> (600,100) 곡선
-        x = 500 + 100 * this.t;
-        y = 0 + 100 * this.t;
+
+      case 1: // 우측 곡선 (600,0 → 800,200 → 600,400)
+        // Quadratic Bezier: P0=(600,0), P1=(800,200), P2=(600,400)
+        x = (1 - this.t) ** 2 * 600 + 2 * (1 - this.t) * this.t * 800 + this.t ** 2 * 600;
+        y = (1 - this.t) ** 2 * 0 + 2 * (1 - this.t) * this.t * 200 + this.t ** 2 * 400;
         break;
-      case 2: // (600,100) -> (500,200) 곡선
-        x = 600 - 100 * this.t;
-        y = 100 + 100 * this.t;
+
+      case 2: // 하단 직선 (600,400 → 200,400)
+        x = 600 - 400 * this.t;
+        y = 400;
         break;
-      case 3: // (500,200) -> (100,200) 직선
-        x = 500 - 400 * this.t;
-        y = 200;
+
+      case 3: // 좌측 곡선 (200,400 → 0,200 → 200,0)
+        // Quadratic Bezier: P0=(200,400), P1=(0,200), P2=(200,0)
+        x = (1 - this.t) ** 2 * 200 + 2 * (1 - this.t) * this.t * 0 + this.t ** 2 * 200;
+        y = (1 - this.t) ** 2 * 400 + 2 * (1 - this.t) * this.t * 200 + this.t ** 2 * 0;
         break;
-      case 4: // (100,200) -> (0,100) 곡선
-        x = 100 - 100 * this.t;
-        y = 200 - 100 * this.t;
-        break;
-      case 5: // (0,100) -> (100,0) 곡선
-        x = 0 + 100 * this.t;
-        y = 100 - 100 * this.t;
-        break;
-      case 6: // (100,0) -> (300,0) 직선
-        x = 100 + 200 * this.t;
+
+      case 4: // 결승선 (200,0 → 400,0)
+        x = 200 + 200 * this.t;
         y = 0;
         break;
     }
@@ -99,4 +97,3 @@ class GameManager {
 }
 
 const game = new GameManager(8);
-
