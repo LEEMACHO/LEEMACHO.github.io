@@ -1,11 +1,9 @@
 class Runner {
-  constructor(index, trackWidth, trackHeight) {
+  constructor(index) {
     this.index = index;
     this.segment = 0;
-    this.pos = 0;
-    this.speed = Math.random() * 3 + 2;
-    this.trackWidth = trackWidth;
-    this.trackHeight = trackHeight;
+    this.t = 0; // 구간 진행도 (0~1)
+    this.speed = Math.random() * 0.01 + 0.005;
 
     this.element = document.createElement("div");
     this.element.className = "runner";
@@ -15,60 +13,69 @@ class Runner {
 
   reset() {
     this.segment = 0;
-    this.pos = this.trackWidth / 2; // 상단 직선 중간에서 출발
-    this.speed = Math.random() * 3 + 2;
+    this.t = 0;
+    this.speed = Math.random() * 0.01 + 0.005;
+    this.updatePosition(300, 0); // 출발점 강제 지정
+  }
+
+  updatePosition(x, y) {
+    this.element.style.transform = `translate(${x}px, ${y}px)`;
   }
 
   move() {
-    let x, y;
-    if (this.segment === 0) { // 상단 직선
-      x = this.pos;
-      y = 0;
-      this.pos += this.speed;
-      if (this.pos >= this.trackWidth - this.trackHeight/2) {
-        this.segment = 1;
-        this.theta = 0; // 곡선 각도 시작
-      }
-    } else if (this.segment === 1) { // 우측 곡선
-      this.theta += this.speed / (this.trackHeight/2);
-      x = this.trackWidth - this.trackHeight/2 + (this.trackHeight/2) * Math.sin(this.theta);
-      y = (this.trackHeight/2) * (1 - Math.cos(this.theta));
-      if (this.theta >= Math.PI/2) {
-        this.segment = 2;
-        this.pos = this.trackWidth - this.trackHeight/2; // 곡선 끝 좌표 이어받기
-      }
-    } else if (this.segment === 2) { // 하단 직선
-      x = this.pos;
-      y = this.trackHeight;
-      this.pos -= this.speed;
-      if (this.pos <= this.trackHeight/2) {
-        this.segment = 3;
-        this.theta = 0;
-      }
-    } else if (this.segment === 3) { // 좌측 곡선
-      this.theta += this.speed / (this.trackHeight/2);
-      x = (this.trackHeight/2) * (1 - Math.sin(this.theta));
-      y = this.trackHeight - (this.trackHeight/2) * (1 - Math.cos(this.theta));
-      if (this.theta >= Math.PI/2) {
+    this.t += this.speed;
+    if (this.t > 1) {
+      this.t = 0;
+      this.segment++;
+      if (this.segment > 6) {
         this.segment = 0;
-        this.pos = this.trackWidth / 2; // 다시 상단 직선 중간에서 시작
         return true; // 한 바퀴 완료
       }
     }
-    this.element.style.transform = `translate(${x}px, ${y}px)`;
+
+    let x, y;
+    switch (this.segment) {
+      case 0: // 출발점에서 (500,0)까지 직선
+        x = 300 + 200 * this.t;
+        y = 0;
+        break;
+      case 1: // (500,0) -> (600,100) 곡선
+        x = 500 + 100 * this.t;
+        y = 0 + 100 * this.t;
+        break;
+      case 2: // (600,100) -> (500,200) 곡선
+        x = 600 - 100 * this.t;
+        y = 100 + 100 * this.t;
+        break;
+      case 3: // (500,200) -> (100,200) 직선
+        x = 500 - 400 * this.t;
+        y = 200;
+        break;
+      case 4: // (100,200) -> (0,100) 곡선
+        x = 100 - 100 * this.t;
+        y = 200 - 100 * this.t;
+        break;
+      case 5: // (0,100) -> (100,0) 곡선
+        x = 0 + 100 * this.t;
+        y = 100 - 100 * this.t;
+        break;
+      case 6: // (100,0) -> (300,0) 직선
+        x = 100 + 200 * this.t;
+        y = 0;
+        break;
+    }
+
+    this.updatePosition(x, y);
     return false;
   }
 }
 
 class GameManager {
-  constructor(numRunners, trackWidth, trackHeight) {
+  constructor(numRunners) {
     this.runners = [];
-    this.trackWidth = trackWidth;
-    this.trackHeight = trackHeight;
     this.interval = null;
-
     for (let i = 0; i < numRunners; i++) {
-      this.runners.push(new Runner(i, trackWidth, trackHeight));
+      this.runners.push(new Runner(i));
     }
   }
 
@@ -91,4 +98,5 @@ class GameManager {
   }
 }
 
-const game = new GameManager(8, 800, 400);
+const game = new GameManager(8);
+
