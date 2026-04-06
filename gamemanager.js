@@ -50,9 +50,9 @@ class Runner {
         y = 0 + this.laneOffset + (this.speed * 50 * this.t);
         break;
 
-      case 1: // 우측 곡선
+      case 1: // 우측 곡선 (외곽만 사용)
         const cxR = 600, cyR = 200;
-        const rR = 200 + this.laneOffset + this.speed * 50;
+        const rR = 200 + Math.abs(this.laneOffset) + this.speed * 50; // 외곽 기준
         const thetaR = -Math.PI/2 + this.t * Math.PI;
         x = cxR + rR * Math.cos(thetaR);
         y = cyR + rR * Math.sin(thetaR);
@@ -64,9 +64,9 @@ class Runner {
         y = 400 + this.laneOffset - (this.speed * 50 * this.t);
         break;
 
-      case 3: // 좌측 곡선
+      case 3: // 좌측 곡선 (외곽만 사용)
         const cxL = 200, cyL = 200;
-        const rL = 200 + this.laneOffset + this.speed * 50;
+        const rL = 200 + Math.abs(this.laneOffset) + this.speed * 50; // 외곽 기준
         const thetaL = Math.PI/2 + this.t * Math.PI;
         x = cxL + rL * Math.cos(thetaL);
         y = cyL + rL * Math.sin(thetaL);
