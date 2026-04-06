@@ -1,7 +1,7 @@
 class Runner {
   constructor(index, trackWidth, trackHeight) {
     this.index = index;
-    this.segment = 0; // 0=상단 직선, 1=우측 곡선, 2=하단 직선, 3=좌측 곡선
+    this.segment = 0;
     this.pos = 0;
     this.speed = Math.random() * 3 + 2;
     this.trackWidth = trackWidth;
@@ -15,45 +15,43 @@ class Runner {
 
   reset() {
     this.segment = 0;
-    this.pos = this.trackWidth / 2; // 직선 구간 중간에서 출발
+    this.pos = this.trackWidth / 2; // 상단 직선 중간에서 출발
     this.speed = Math.random() * 3 + 2;
   }
 
   move() {
     let x, y;
-    if (this.segment === 0) { // 상단 직선 (왼→오)
+    if (this.segment === 0) { // 상단 직선
       x = this.pos;
       y = 0;
       this.pos += this.speed;
       if (this.pos >= this.trackWidth - this.trackHeight/2) {
         this.segment = 1;
-        this.pos = 0;
+        this.theta = 0; // 곡선 각도 시작
       }
-    } else if (this.segment === 1) { // 우측 곡선 (위→아래)
-      const theta = (this.pos / (this.trackHeight/2)) * Math.PI/2;
-      x = this.trackWidth - this.trackHeight/2 + (this.trackHeight/2) * Math.sin(theta);
-      y = (this.trackHeight/2) * (1 - Math.cos(theta));
-      this.pos += this.speed;
-      if (theta >= Math.PI/2) {
+    } else if (this.segment === 1) { // 우측 곡선
+      this.theta += this.speed / (this.trackHeight/2);
+      x = this.trackWidth - this.trackHeight/2 + (this.trackHeight/2) * Math.sin(this.theta);
+      y = (this.trackHeight/2) * (1 - Math.cos(this.theta));
+      if (this.theta >= Math.PI/2) {
         this.segment = 2;
-        this.pos = 0;
+        this.pos = this.trackWidth - this.trackHeight/2; // 곡선 끝 좌표 이어받기
       }
-    } else if (this.segment === 2) { // 하단 직선 (오→왼)
-      x = this.trackWidth - this.pos;
+    } else if (this.segment === 2) { // 하단 직선
+      x = this.pos;
       y = this.trackHeight;
-      this.pos += this.speed;
-      if (this.pos >= this.trackWidth - this.trackHeight/2) {
+      this.pos -= this.speed;
+      if (this.pos <= this.trackHeight/2) {
         this.segment = 3;
-        this.pos = 0;
+        this.theta = 0;
       }
-    } else if (this.segment === 3) { // 좌측 곡선 (아래→위)
-      const theta = (this.pos / (this.trackHeight/2)) * Math.PI/2;
-      x = (this.trackHeight/2) * (1 - Math.sin(theta));
-      y = this.trackHeight - (this.trackHeight/2) * (1 - Math.cos(theta));
-      this.pos += this.speed;
-      if (theta >= Math.PI/2) {
+    } else if (this.segment === 3) { // 좌측 곡선
+      this.theta += this.speed / (this.trackHeight/2);
+      x = (this.trackHeight/2) * (1 - Math.sin(this.theta));
+      y = this.trackHeight - (this.trackHeight/2) * (1 - Math.cos(this.theta));
+      if (this.theta >= Math.PI/2) {
         this.segment = 0;
-        this.pos = this.trackWidth / 2; // 다시 직선 중간에서 시작
+        this.pos = this.trackWidth / 2; // 다시 상단 직선 중간에서 시작
         return true; // 한 바퀴 완료
       }
     }
