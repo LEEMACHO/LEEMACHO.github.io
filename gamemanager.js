@@ -1,10 +1,11 @@
 class Runner {
-  constructor(index, a, b) {
+  constructor(index, trackWidth, trackHeight) {
     this.index = index;
-    this.theta = 0;
-    this.speed = Math.random() * 0.05 + 0.02; // 각도 증가량
-    this.a = a; // 가로 반지름
-    this.b = b; // 세로 반지름
+    this.segment = 0; // 현재 구간 (0=상단 직선, 1=우측 곡선, 2=하단 직선, 3=좌측 곡선)
+    this.pos = 0;
+    this.speed = Math.random() * 3 + 2;
+    this.trackWidth = trackWidth;
+    this.trackHeight = trackHeight;
 
     this.element = document.createElement("div");
     this.element.className = "runner";
@@ -13,28 +14,63 @@ class Runner {
   }
 
   reset() {
-    this.theta = 0;
-    this.speed = Math.random() * 0.05 + 0.02;
+    this.segment = 0;
+    this.pos = 0;
+    this.speed = Math.random() * 3 + 2;
   }
 
   move() {
-    this.theta += this.speed;
-    const x = this.a * Math.cos(this.theta) + this.a;
-    const y = this.b * Math.sin(this.theta) + this.b;
+    let x, y;
+    if (this.segment === 0) { // 상단 직선 (왼→오)
+      x = this.pos;
+      y = 0;
+      this.pos += this.speed;
+      if (this.pos >= this.trackWidth - this.trackHeight/2) {
+        this.segment = 1;
+        this.pos = 0;
+      }
+    } else if (this.segment === 1) { // 우측 곡선 (위→아래)
+      const theta = (this.pos / (this.trackHeight/2)) * Math.PI/2;
+      x = this.trackWidth - this.trackHeight/2 + (this.trackHeight/2) * Math.sin(theta);
+      y = (this.trackHeight/2) * (1 - Math.cos(theta));
+      this.pos += this.speed;
+      if (theta >= Math.PI/2) {
+        this.segment = 2;
+        this.pos = 0;
+      }
+    } else if (this.segment === 2) { // 하단 직선 (오→왼)
+      x = this.trackWidth - this.pos;
+      y = this.trackHeight;
+      this.pos += this.speed;
+      if (this.pos >= this.trackWidth - this.trackHeight/2) {
+        this.segment = 3;
+        this.pos = 0;
+      }
+    } else if (this.segment === 3) { // 좌측 곡선 (아래→위)
+      const theta = (this.pos / (this.trackHeight/2)) * Math.PI/2;
+      x = (this.trackHeight/2) * (1 - Math.sin(theta));
+      y = this.trackHeight - (this.trackHeight/2) * (1 - Math.cos(theta));
+      this.pos += this.speed;
+      if (theta >= Math.PI/2) {
+        this.segment = 0;
+        this.pos = 0;
+        return true; // 한 바퀴 완료
+      }
+    }
     this.element.style.transform = `translate(${x}px, ${y}px)`;
-    return this.theta >= 2 * Math.PI; // 한 바퀴 돌면 경기 종료
+    return false;
   }
 }
 
 class GameManager {
-  constructor(numRunners, a, b) {
+  constructor(numRunners, trackWidth, trackHeight) {
     this.runners = [];
-    this.a = a;
-    this.b = b;
+    this.trackWidth = trackWidth;
+    this.trackHeight = trackHeight;
     this.interval = null;
 
     for (let i = 0; i < numRunners; i++) {
-      this.runners.push(new Runner(i, a, b));
+      this.runners.push(new Runner(i, trackWidth, trackHeight));
     }
   }
 
@@ -57,4 +93,4 @@ class GameManager {
   }
 }
 
-const game = new GameManager(8, 350, 180); // 경기장 크기 (가로/세로 반지름)
+const game = new GameManager(8, 800, 400);
