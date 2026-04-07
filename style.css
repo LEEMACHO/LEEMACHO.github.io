@@ -19,7 +19,7 @@ body {
   margin: 220px auto 20px auto;
   position: relative;
   background: linear-gradient(#fff,#f0f0f0);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* 러너: 이미지/크기는 CSS 변수로 관리, transform으로 GPU 가속 + 중심 정렬 유지 */
