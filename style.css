@@ -16,10 +16,11 @@ body {
   height: var(--map-height);
   border: 10px solid #333;
   border-radius: 200px;
-  margin: 220px auto 20px auto; /* 맵을 200px 아래로 내림 */
-  position: relative;
+  margin: 220px auto 20px auto;
+  position: relative; /* 중요: runner의 left/top 기준 */
 }
 
+/* runner: 이미지/크기는 CSS 변수로 관리, 위치는 left/top으로 제어 */
 .runner {
   width: var(--runner-size);
   height: var(--runner-size);
@@ -27,7 +28,11 @@ body {
   background-size: contain;
   background-repeat: no-repeat;
   position: absolute;
-  transition: transform 0.05s linear;
+  /* 중앙 정렬: left/top을 요소의 중심으로 해석 */
+  transform: translate(-50%, -50%);
+  /* 위치 애니메이션: transform 대신 left/top 전환으로 부드럽게 */
+  transition: left 0.05s linear, top 0.05s linear;
+  pointer-events: none;
 }
 
 #result {
@@ -42,3 +47,4 @@ button {
   cursor: pointer;
   margin-bottom: 10px;
 }
+
