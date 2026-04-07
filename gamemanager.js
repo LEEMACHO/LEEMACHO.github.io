@@ -1,15 +1,13 @@
 // gamemanager.js
-// rAF + 보간 적용, 우승 판정: laps 기반 안전 판정
+// rAF 기반, 보간(lerp) 제거 버전 — 즉시 전역 game 생성
 
 (function () {
-  const DEFAULT_NUM_RUNNERS = 6;
-  const SMOOTH_ALPHA = 0.22;
+  const DEFAULT_NUM_RUNNERS = 7;
   const CURVE_SLOW_FACTOR = 0.7;
   const SPEED_MIN = 0.02; // t per second
   const SPEED_MAX = 0.06;
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-  function lerp(a, b, alpha) { return a + (b - a) * alpha; }
 
   class Runner {
     constructor(index, stadiumEl) {
@@ -18,19 +16,24 @@
       this.t = 0;
       this.laps = 0;
 
+      // speed: t per second
       this.speed = Math.random() * (SPEED_MAX - SPEED_MIN) + SPEED_MIN;
+
       this.laneOffset = -Math.min(index * 20, 120);
       this.laneRadius = Math.max(200, 200 + this.laneOffset);
 
+      // 화면 좌표 (즉시 적용용)
       this.cx = 0;
       this.cy = 0;
 
+      // DOM
       this.element = document.createElement("div");
       this.element.className = "runner";
       this.element.title = `Runner ${index + 1}`;
       this.element.style.filter = `hue-rotate(${index * 45}deg)`;
       stadiumEl.appendChild(this.element);
 
+      // 초기 위치
       const p = this.getPositionAt(this.segment, this.t);
       this.cx = p.x; this.cy = p.y;
       this.updateVisual(true);
@@ -81,6 +84,7 @@
       return { x, y };
     }
 
+    // 즉시 렌더: 보간 없이 목표 좌표를 바로 적용
     updateVisual(force = false) {
       this.element.style.transform = `translate3d(${this.cx}px, ${this.cy}px, 0) translate(-50%, -50%)`;
       if (force) {
@@ -89,6 +93,7 @@
       }
     }
 
+    // 한 프레임 분량의 논리 업데이트 (deltaSec: 초)
     step(deltaSec) {
       let effectiveSpeed = this.speed;
       if (this.segment === 1 || this.segment === 3) effectiveSpeed *= CURVE_SLOW_FACTOR;
@@ -100,14 +105,14 @@
         this.segment++;
         if (this.segment > 4) {
           this.segment = 0;
-          this.laps += 1; // 한 바퀴 완료 기록
+          this.laps += 1;
         }
       }
 
+      // 목표 좌표를 계산하고 즉시 적용
       const target = this.getPositionAt(this.segment, this.t);
-      this.cx = lerp(this.cx, target.x, SMOOTH_ALPHA);
-      this.cy = lerp(this.cy, target.y, SMOOTH_ALPHA);
-
+      this.cx = target.x;
+      this.cy = target.y;
       this.updateVisual();
     }
   }
