@@ -2,30 +2,22 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>트랙 맵 (1000×500 m) - 회색 밴드</title>
+  <title>트랙 맵 1000×500</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>트랙 맵 (1000m × 500m) — 회색 구간 사용</h1>
+  <h1>트랙 맵 1000m × 500m</h1>
 
   <div class="stage">
-    <!-- SVG: viewBox는 미터 단위(1000 x 500) -->
     <svg id="trackSvg" class="track-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <!-- 외부: 직선 500m, 반지름 250m -->
-      <!-- 내부: 직선 400m, 반지름 200m -->
-      <!-- band path 채워질 요소 -->
       <path id="band" fill="#d0d0d0" stroke="none"></path>
-
-      <!-- 외곽선(테두리) -->
       <path id="outerStroke" fill="none" stroke="#111" stroke-width="4"></path>
       <path id="innerStroke" fill="none" stroke="#111" stroke-width="4"></path>
-
-      <!-- centerline (디버그용, 필요 시 보이게) -->
       <path id="centerline" fill="none" stroke="rgba(0,0,0,0.12)" stroke-dasharray="6 6"></path>
     </svg>
 
-    <!-- overlay: 러너는 이 위에 렌더(overflow/클리핑 문제 회피) -->
-    <div id="overlay" class="overlay"></div>
+    <div id="overlay" class="overlay" aria-hidden="true"></div>
   </div>
 
   <div class="controls">
