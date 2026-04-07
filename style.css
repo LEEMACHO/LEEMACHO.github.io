@@ -1,6 +1,6 @@
 :root{
-  --svg-width: 820px;
-  --svg-height: 420px;
+  --svg-width: 1000px; /* 화면에서의 기본 너비(원하면 변경) */
+  --svg-height: 500px;
   --runner-size: 36px;
   --overlay-z: 9999;
 }
@@ -12,22 +12,28 @@ body {
   margin: 20px;
 }
 
+h1 { font-size: 18px; margin-bottom: 8px; }
+
 .stage {
-  width: var(--svg-width);
+  width: min(1000px, 96vw);
   margin: 12px auto;
   position: relative;
+  background: linear-gradient(#fff,#f7f7f7);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
 
-/* SVG 트랙 크기 고정 */
+/* SVG 트랙: viewBox 1000x500 (미터 단위) */
 .track-svg {
   width: 100%;
   height: auto;
   display: block;
-  background: linear-gradient(#fff,#f7f7f7);
-  border-radius: 8px;
+  background: transparent;
+  border-radius: 6px;
 }
 
-/* overlay는 페이지 좌표 기준의 최상위 레이어 */
+/* overlay는 SVG 위에 고정된 레이어 (페이지 좌표 기준) */
 .overlay {
   position: absolute;
   left: 0;
@@ -38,7 +44,7 @@ body {
   z-index: var(--overlay-z);
 }
 
-/* 러너 스타일: transform으로 GPU 가속, 중심 정렬 포함 */
+/* 러너 스타일 */
 .runner {
   position: absolute; /* overlay 기준 */
   width: var(--runner-size);
@@ -53,7 +59,7 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
-/* 기본 색상(이미지 없을 때 디버그용) */
+/* 디버그용 러너(이미지 없을 때 색상) */
 .runner.debug {
   background-image: none;
   background-color: crimson;
