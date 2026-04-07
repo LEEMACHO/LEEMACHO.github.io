@@ -1,15 +1,36 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>🏇 경마장 달리기</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <title>트랙 맵 - 회색 구간 사용</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🏇 경마장 달리기 🏇</h1>
-  <button onclick="game.startRace()">경기 시작!</button>
-  <button onclick="game.stopRace()">정지</button>
-  <div class="stadium"></div>
+  <h1>🏇 회색 구간 트랙 예제</h1>
+
+  <div class="stage">
+    <!-- SVG 트랙: outerEllipse(검정 테두리), innerEllipse(안쪽), band은 두 타원 사이의 회색 영역 -->
+    <svg id="trackSvg" class="track-svg" viewBox="0 0 820 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <!-- outer ellipse (테두리) -->
+      <ellipse id="outer" cx="410" cy="210" rx="380" ry="180" fill="#ffffff" stroke="#111" stroke-width="6"></ellipse>
+      <!-- inner ellipse (안쪽 경계) -->
+      <ellipse id="inner" cx="410" cy="210" rx="260" ry="100" fill="#ffffff" stroke="#111" stroke-width="6"></ellipse>
+      <!-- band: 회색 영역을 표현하려면 두 타원 사이를 채우는 방법으로 <path>를 사용 -->
+      <path id="band" fill="#d0d0d0" stroke="none"></path>
+      <!-- optional: centerline for debug -->
+      <path id="centerline" fill="none" stroke="rgba(0,0,0,0.15)" stroke-dasharray="4 6"></path>
+    </svg>
+
+    <!-- 오버레이: 러너는 이 컨테이너(페이지 좌표 기준)에 붙음 -> stadium overflow 문제 회피 -->
+    <div id="overlay" class="overlay"></div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">경기 시작</button>
+    <button id="stopBtn">정지</button>
+    <label>러너 수: <input id="numRunners" type="number" min="1" max="12" value="7"></label>
+  </div>
+
   <p id="result"></p>
 
   <script src="gamemanager.js"></script>
