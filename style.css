@@ -1,15 +1,18 @@
 :root{
-  --svg-width: 1000px; /* 화면에서의 기본 너비(원하면 변경) */
+  --svg-width: 1000px;
   --svg-height: 500px;
   --runner-size: 36px;
   --overlay-z: 9999;
 }
 
+* { box-sizing: border-box; }
+
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   text-align: center;
   background: #f6f7f9;
-  margin: 20px;
+  margin: 18px;
+  color: #222;
 }
 
 h1 { font-size: 18px; margin-bottom: 8px; }
@@ -18,22 +21,21 @@ h1 { font-size: 18px; margin-bottom: 8px; }
   width: min(1000px, 96vw);
   margin: 12px auto;
   position: relative;
-  background: linear-gradient(#fff,#f7f7f7);
-  border-radius: 8px;
   padding: 6px;
+  border-radius: 8px;
+  background: linear-gradient(#fff,#f7f7f7);
   box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
 
-/* SVG 트랙: viewBox 1000x500 (미터 단위) */
+/* SVG 트랙 */
 .track-svg {
   width: 100%;
   height: auto;
   display: block;
-  background: transparent;
   border-radius: 6px;
 }
 
-/* overlay는 SVG 위에 고정된 레이어 (페이지 좌표 기준) */
+/* overlay: SVG 위에 고정된 레이어 */
 .overlay {
   position: absolute;
   left: 0;
@@ -46,7 +48,7 @@ h1 { font-size: 18px; margin-bottom: 8px; }
 
 /* 러너 스타일 */
 .runner {
-  position: absolute; /* overlay 기준 */
+  position: absolute;
   width: var(--runner-size);
   height: var(--runner-size);
   background-size: contain;
@@ -59,7 +61,7 @@ h1 { font-size: 18px; margin-bottom: 8px; }
   box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
-/* 디버그용 러너(이미지 없을 때 색상) */
+/* 디버그용 기본 색상 (이미지 미사용 시) */
 .runner.debug {
   background-image: none;
   background-color: crimson;
@@ -68,7 +70,7 @@ h1 { font-size: 18px; margin-bottom: 8px; }
 /* 컨트롤 */
 .controls { margin-top: 10px; }
 .controls button { margin: 0 6px; padding: 8px 12px; font-size: 14px; }
-.controls input { width: 60px; padding: 4px; }
+.controls input { width: 64px; padding: 4px; }
 
 /* 결과 텍스트 */
 #result { font-weight: 700; color: #c62828; margin-top: 10px; }
