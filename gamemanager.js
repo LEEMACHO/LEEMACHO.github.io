@@ -169,4 +169,4 @@ class GameManager {
 }
 
 // 즉시 전역 생성 — index.html의 버튼 onclick="game.startRace()"와 호환
-window.game = new GameManager(8);
+window.game = new GameManager(7);
