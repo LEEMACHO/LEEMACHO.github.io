@@ -95,7 +95,7 @@ class Runner {
 }
 
 class GameManager {
-  constructor(numRunners = 7) {
+  constructor(numRunners = 8) {
     this.numRunners = numRunners;
     this.runners = [];
     this.interval = null;
