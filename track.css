@@ -1,0 +1,58 @@
+/* 전체 경기장 컨테이너 */
+.track-container {
+  width: 800px;
+  height: 400px;
+  margin: 20px auto;
+  background: linear-gradient(to top, #228B22 25%, #87CEEB 75%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 트랙 영역 */
+.track {
+  width: 100%;
+  height: 100%;
+  background: #d2691e; /* 붉은색 트랙 */
+  border: 5px solid #333;
+  position: relative;
+}
+
+/* 각 레인 */
+.lane {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: calc(100% / 7);
+  border-top: 2px solid white;
+  box-sizing: border-box;
+}
+
+/* 레인 번호 표시 */
+.lane-number {
+  position: absolute;
+  left: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+}
+
+/* 스타트 라인 */
+.start-line {
+  position: absolute;
+  left: 5%;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: white;
+}
+
+/* 피니시 라인 */
+.finish-line {
+  position: absolute;
+  right: 5%;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: yellow;
+}
