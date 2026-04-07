@@ -2,7 +2,7 @@
 // rAF + 보간 적용, 우승 판정: laps 기반 안전 판정
 
 (function () {
-  const DEFAULT_NUM_RUNNERS = 7;
+  const DEFAULT_NUM_RUNNERS = 6;
   const SMOOTH_ALPHA = 0.22;
   const CURVE_SLOW_FACTOR = 0.7;
   const SPEED_MIN = 0.02; // t per second
