@@ -1,146 +1,308 @@
 // gamemanager.js
-// 회색 밴드(두 타원 사이)를 러너가 사용할 수 있는 공간으로 삼는 구현
-// 러너는 centerline(타원 중간 반지름)을 따라 이동하고, 법선 벡터로 오프셋을 적용
+// 사용자 요청 사양에 맞춘 트랙(외부 1000x500, 내부 800x400) 및 러너 구현
+// 러너는 밴드 중심선(centerline)을 따라 이동하고 법선으로 lateral offset 적용
 
 (function () {
-  // 설정값
+  // 설정 (사양에 맞춤)
   const DEFAULT_RUNNERS = 4;
-  const RUNNER_SIZE = 36; // CSS 변수와 동일하게 유지
-  const SPEED_MIN = 0.6; // radians per second (속도 조절)
-  const SPEED_MAX = 1.2;
-  const OVERLAY_ID = "overlay";
+  const RUNNER_SIZE = 36; // CSS와 동일
+  // 트랙 사양 (미터 단위, viewBox 1000x500)
+  const VIEW_W = 1000;
+  const VIEW_H = 500;
+  const CENTER = { x: VIEW_W / 2, y: VIEW_H / 2 };
 
-  // SVG 트랙 파라미터 (index.html의 ellipse와 일치시킬 것)
-  const SVG_ID = "trackSvg";
-  const OUTER = { cx: 410, cy: 210, rx: 380, ry: 180 };
-  const INNER = { cx: 410, cy: 210, rx: 260, ry: 100 };
+  // 외부(바깥) : straight 500, radius 250
+  const OUTER = {
+    straight: 500,
+    radius: 250
+  };
+  // 내부(안쪽) : straight 400, radius 200
+  const INNER = {
+    straight: 400,
+    radius: 200
+  };
+
+  // centerline: 평균값 사용 (밴드 중심)
+  const CENTERLINE = {
+    straight: (OUTER.straight + INNER.straight) / 2, // 450
+    radius: (OUTER.radius + INNER.radius) / 2        // 225
+  };
+
+  // derived values
+  const halfOuterStraight = OUTER.straight / 2; // 250
+  const halfInnerStraight = INNER.straight / 2; // 200
+  const halfCenterStraight = CENTERLINE.straight / 2; // 225
+
+  // arc lengths
+  function arcLen(radius) { return Math.PI * radius; } // semicircle length
+  const outerArcLen = arcLen(OUTER.radius);
+  const innerArcLen = arcLen(INNER.radius);
+  const centerArcLen = arcLen(CENTERLINE.radius);
+
+  // total path lengths (two straights + two semicircles)
+  const outerTotal = 2 * OUTER.straight + 2 * Math.PI * OUTER.radius;
+  const innerTotal = 2 * INNER.straight + 2 * Math.PI * INNER.radius;
+  const centerTotal = 2 * CENTERLINE.straight + 2 * Math.PI * CENTERLINE.radius;
+
+  // DOM refs (set later)
+  let svgEl, overlayEl, bandEl, outerStrokeEl, innerStrokeEl, centerlineEl;
 
   // 유틸
   function rand(min, max) { return Math.random() * (max - min) + min; }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-  // 타원에서 θ(라디안)로 좌표 얻기
-  function ellipsePoint(cx, cy, rx, ry, theta) {
-    return { x: cx + rx * Math.cos(theta), y: cy + ry * Math.sin(theta) };
+  // sample point on centerline by distance along path (0..centerTotal)
+  // path order: top straight (left->right), right arc (top->bottom), bottom straight (right->left), left arc (bottom->top)
+  function sampleCenterlineAt(dist) {
+    // normalize
+    dist = ((dist % centerTotal) + centerTotal) % centerTotal;
+
+    const Ls = CENTERLINE.straight;
+    const halfS = Ls / 2;
+    const R = CENTERLINE.radius;
+    const arcL = centerArcLen;
+
+    // coordinates for key positions
+    const leftX = CENTER.x - halfS;
+    const rightX = CENTER.x + halfS;
+    const topY = CENTER.y - R;
+    const bottomY = CENTER.y + R;
+
+    if (dist < Ls) {
+      // top straight
+      const t = dist / Ls;
+      const x = leftX + t * (rightX - leftX);
+      const y = topY;
+      return { x, y, seg: 'topStraight', t };
+    }
+    dist -= Ls;
+    if (dist < arcL) {
+      // right semicircle: center at (rightX, CENTER.y), angle from -90deg to +90deg
+      const a = -Math.PI / 2 + (dist / arcL) * Math.PI;
+      const cx = rightX, cy = CENTER.y;
+      const x = cx + R * Math.cos(a);
+      const y = cy + R * Math.sin(a);
+      return { x, y, seg: 'rightArc', a };
+    }
+    dist -= arcL;
+    if (dist < Ls) {
+      // bottom straight (right -> left)
+      const t = dist / Ls;
+      const x = rightX - t * (rightX - leftX);
+      const y = bottomY;
+      return { x, y, seg: 'bottomStraight', t };
+    }
+    dist -= Ls;
+    // left arc: center at (leftX, CENTER.y), angle from +90deg to +270deg
+    const a = Math.PI / 2 + (dist / arcL) * Math.PI;
+    const cx = leftX, cy = CENTER.y;
+    const x = cx + R * Math.cos(a);
+    const y = cy + R * Math.sin(a);
+    return { x, y, seg: 'leftArc', a };
   }
 
-  // 타원에서의 접선 벡터(미분): dx/dθ, dy/dθ
-  function ellipseTangent(rx, ry, theta) {
-    return { dx: -rx * Math.sin(theta), dy: ry * Math.cos(theta) };
+  // small forward sample to compute tangent (for normal)
+  function sampleAhead(dist, delta = 1) {
+    return sampleCenterlineAt(dist + delta);
   }
 
-  // 법선 벡터(단위) : tangent rotated 90deg and normalized
-  function normalFromTangent(t) {
-    // rotate tangent by +90deg => ( -dy, dx ) or (-dy, dx) depending sign
-    const nx = -t.dy;
-    const ny = t.dx;
+  // compute normal vector from two sample points
+  function computeNormalAt(dist) {
+    const p = sampleCenterlineAt(dist);
+    const q = sampleAhead(dist, 0.5); // small ahead
+    const tx = q.x - p.x;
+    const ty = q.y - p.y;
+    // tangent (tx,ty) -> normal = (-ty, tx)
+    const nx = -ty;
+    const ny = tx;
     const len = Math.hypot(nx, ny) || 1;
     return { nx: nx / len, ny: ny / len };
   }
 
-  // band(두 타원 사이) 중심선 파라미터: rx_mid = (rx_out + rx_in)/2, ry_mid similarly
-  const CENTER = {
-    cx: OUTER.cx,
-    cy: OUTER.cy,
-    rx: (OUTER.rx + INNER.rx) / 2,
-    ry: (OUTER.ry + INNER.ry) / 2,
-    halfWidth: Math.min((OUTER.rx - INNER.rx) / 2, (OUTER.ry - INNER.ry) / 2) // 반폭(대략)
-  };
+  // build band path (outer path minus inner path)
+  function buildBandPath() {
+    // Outer path: top straight from (leftOuterTop) -> (rightOuterTop), arc to bottom, bottom straight back, arc to top
+    const halfOuter = halfOuterStraight;
+    const leftOuterX = CENTER.x - halfOuter;
+    const rightOuterX = CENTER.x + halfOuter;
+    const topOuterY = CENTER.y - OUTER.radius;
+    const bottomOuterY = CENTER.y + OUTER.radius;
+    const R1 = OUTER.radius;
 
-  // SVG band path 생성: 외부 타원 - 내부 타원 (반전) -> path d
-  function buildBandPath(outer, inner) {
-    // Use SVG arc commands to create ring-like path
-    // We'll approximate by two arcs for outer and two for inner (clockwise/ccw)
-    const o1 = `${outer.cx - outer.rx},${outer.cy}`;
-    const o2 = `${outer.cx + outer.rx},${outer.cy}`;
-    const i1 = `${inner.cx + inner.rx},${inner.cy}`;
-    const i2 = `${inner.cx - inner.rx},${inner.cy}`;
+    // Inner path
+    const halfInner = halfInnerStraight;
+    const leftInnerX = CENTER.x - halfInner;
+    const rightInnerX = CENTER.x + halfInner;
+    const topInnerY = CENTER.y - INNER.radius;
+    const bottomInnerY = CENTER.y + INNER.radius;
+    const R2 = INNER.radius;
 
-    // Build path: move to rightmost outer, arc to leftmost outer, arc back, then inner reversed
-    const d = [
-      `M ${outer.cx + outer.rx} ${outer.cy}`,
-      `A ${outer.rx} ${outer.ry} 0 1 0 ${outer.cx - outer.rx} ${outer.cy}`,
-      `A ${outer.rx} ${outer.ry} 0 1 0 ${outer.cx + outer.rx} ${outer.cy}`,
-      `M ${inner.cx + inner.rx} ${inner.cy}`,
-      `A ${inner.rx} ${inner.ry} 0 1 1 ${inner.cx - inner.rx} ${inner.cy}`,
-      `A ${inner.rx} ${inner.ry} 0 1 1 ${inner.cx + inner.rx} ${inner.cy}`,
+    // Build path string: outer clockwise, then inner counter-clockwise (to create hole)
+    const dOuter = [
+      `M ${leftOuterX} ${topOuterY}`,
+      `L ${rightOuterX} ${topOuterY}`,
+      `A ${R1} ${R1} 0 0 1 ${rightOuterX} ${bottomOuterY}`,
+      `L ${leftOuterX} ${bottomOuterY}`,
+      `A ${R1} ${R1} 0 0 1 ${leftOuterX} ${topOuterY}`,
       `Z`
-    ].join(" ");
+    ].join(' ');
+
+    const dInner = [
+      `M ${rightInnerX} ${topInnerY}`,
+      `L ${leftInnerX} ${topInnerY}`,
+      `A ${R2} ${R2} 0 0 0 ${leftInnerX} ${bottomInnerY}`,
+      `L ${rightInnerX} ${bottomInnerY}`,
+      `A ${R2} ${R2} 0 0 0 ${rightInnerX} ${topInnerY}`,
+      `Z`
+    ].join(' ');
+
+    // Combine: outer then inner (inner will be hole if fill-rule nonzero/evenodd; to be safe set 'd' to outer+inner)
+    return dOuter + ' ' + dInner;
+  }
+
+  // build stroke paths for outer and inner outlines
+  function buildOutlinePaths() {
+    const halfOuter = halfOuterStraight;
+    const leftOuterX = CENTER.x - halfOuter;
+    const rightOuterX = CENTER.x + halfOuter;
+    const topOuterY = CENTER.y - OUTER.radius;
+    const bottomOuterY = CENTER.y + OUTER.radius;
+    const R1 = OUTER.radius;
+
+    const outer = [
+      `M ${leftOuterX} ${topOuterY}`,
+      `L ${rightOuterX} ${topOuterY}`,
+      `A ${R1} ${R1} 0 0 1 ${rightOuterX} ${bottomOuterY}`,
+      `L ${leftOuterX} ${bottomOuterY}`,
+      `A ${R1} ${R1} 0 0 1 ${leftOuterX} ${topOuterY}`,
+      `Z`
+    ].join(' ');
+
+    const halfInner = halfInnerStraight;
+    const leftInnerX = CENTER.x - halfInner;
+    const rightInnerX = CENTER.x + halfInner;
+    const topInnerY = CENTER.y - INNER.radius;
+    const bottomInnerY = CENTER.y + INNER.radius;
+    const R2 = INNER.radius;
+
+    const inner = [
+      `M ${leftInnerX} ${topInnerY}`,
+      `L ${rightInnerX} ${topInnerY}`,
+      `A ${R2} ${R2} 0 0 1 ${rightInnerX} ${bottomInnerY}`,
+      `L ${leftInnerX} ${bottomInnerY}`,
+      `A ${R2} ${R2} 0 0 1 ${leftInnerX} ${topInnerY}`,
+      `Z`
+    ].join(' ');
+
+    return { outer, inner };
+  }
+
+  // centerline path (for debug)
+  function buildCenterlinePath() {
+    const halfS = halfCenterStraight;
+    const leftX = CENTER.x - halfS;
+    const rightX = CENTER.x + halfS;
+    const R = CENTERLINE.radius;
+    const topY = CENTER.y - R;
+    const bottomY = CENTER.y + R;
+
+    const d = [
+      `M ${leftX} ${topY}`,
+      `L ${rightX} ${topY}`,
+      `A ${R} ${R} 0 0 1 ${rightX} ${bottomY}`,
+      `L ${leftX} ${bottomY}`,
+      `A ${R} ${R} 0 0 1 ${leftX} ${topY}`,
+      `Z`
+    ].join(' ');
     return d;
   }
 
-  // centerline path (for debug or optional use)
-  function buildCenterlinePath(center) {
-    // approximate ellipse with arc commands
-    return [
-      `M ${center.cx + center.rx} ${center.cy}`,
-      `A ${center.rx} ${center.ry} 0 1 0 ${center.cx - center.rx} ${center.cy}`,
-      `A ${center.rx} ${center.ry} 0 1 0 ${center.cx + center.rx} ${center.cy}`
-    ].join(" ");
+  // map SVG (viewBox) coordinates to page coordinates (overlay)
+  function svgToPage(x, y) {
+    const rect = svgEl.getBoundingClientRect();
+    // viewBox is 0..VIEW_W, 0..VIEW_H
+    const px = rect.left + (x / VIEW_W) * rect.width;
+    const py = rect.top + (y / VIEW_H) * rect.height;
+    return { px, py };
   }
 
   // Runner class
   class Runner {
-    constructor(index, overlayEl) {
+    constructor(index, overlay) {
       this.index = index;
-      this.theta = Math.random() * Math.PI * 2; // param along centerline
-      this.speed = rand(SPEED_MIN, SPEED_MAX); // radians/sec
-      // lateral offset within band: -halfWidth..+halfWidth
-      // allow small margin so runner stays inside band
+      // position along centerline in meters (distance)
+      this.pos = Math.random() * centerTotal;
+      // lateral offset inside band: keep inside half-band width
+      const halfBandX = (halfOuterStraight - halfInnerStraight) / 2; // not used directly
+      // compute approximate half-width of band (min of radial and straight half differences)
+      const radialHalf = (OUTER.radius - INNER.radius) / 2; // 25
+      const straightHalf = (halfOuterStraight - halfInnerStraight) / 2; // 25
+      const halfBand = Math.min(radialHalf, straightHalf) + CENTERLINE.radius - CENTERLINE.radius; // ~25
+      // But we want lateral offset measured along normal from centerline: allow up to half band width
+      const bandHalfWidth = Math.min(OUTER.radius - CENTERLINE.radius, CENTERLINE.radius - INNER.radius);
+      // small margin
       const margin = 6;
-      this.lateral = rand(-CENTER.halfWidth + margin, CENTER.halfWidth - margin);
+      this.lateral = rand(-bandHalfWidth + margin, bandHalfWidth - margin);
 
-      // DOM element
-      this.el = document.createElement("div");
-      this.el.className = "runner";
+      // speed in meters per second along centerline (tune)
+      // convert angular/radian style to linear: choose speed range relative to centerTotal
+      const lapsPerMinuteMin = 0.08; // slow
+      const lapsPerMinuteMax = 0.18; // faster
+      const lapsPerSecMin = lapsPerMinuteMin / 60;
+      const lapsPerSecMax = lapsPerMinuteMax / 60;
+      this.speed = rand(lapsPerSecMin, lapsPerSecMax) * centerTotal; // meters per second along centerline
+
+      // DOM
+      this.el = document.createElement('div');
+      this.el.className = 'runner debug';
       this.el.title = `Runner ${index + 1}`;
-      // try to use image; fallback to colored box
-      // replace URL with your runner image if available
-      // this.el.style.backgroundImage = "url('path/to/runner.png')";
-      // For visibility, use hue-rotate color filter on a simple background
-      this.el.style.backgroundColor = `hsl(${(index * 45) % 360} 70% 55%)`;
+      // color by index
+      this.el.style.backgroundColor = `hsl(${(index * 55) % 360} 70% 55%)`;
       this.el.style.width = `${RUNNER_SIZE}px`;
       this.el.style.height = `${RUNNER_SIZE}px`;
-      overlayEl.appendChild(this.el);
+      overlay.appendChild(this.el);
 
-      // initial placement
+      // initial visual
       this.updateVisual(true);
     }
 
-    // compute target position on centerline and offset by lateral along normal
-    computePosition() {
-      // centerline point at theta
-      const cpt = ellipsePoint(CENTER.cx, CENTER.cy, CENTER.rx, CENTER.ry, this.theta);
-      // tangent at theta (for centerline)
-      const t = ellipseTangent(CENTER.rx, CENTER.ry, this.theta);
-      const n = normalFromTangent(t);
+    // compute centerline point and normal at current pos
+    computePos() {
+      const p = sampleCenterlineAt(this.pos);
+      const n = computeNormalAt(this.pos);
       // apply lateral offset along normal
-      const x = cpt.x + n.nx * this.lateral;
-      const y = cpt.y + n.ny * this.lateral;
-      return { x, y, cpt, n };
+      const x = p.x + n.nx * this.lateral;
+      const y = p.y + n.ny * this.lateral;
+      return { x, y, p, n };
     }
 
-    // update logic per frame
     step(deltaSec) {
-      // advance theta by speed (wrap around)
-      this.theta += this.speed * deltaSec;
-      if (this.theta > Math.PI * 2) this.theta -= Math.PI * 2;
-      if (this.theta < 0) this.theta += Math.PI * 2;
+      this.pos += this.speed * deltaSec;
+      // wrap
+      if (this.pos >= centerTotal) this.pos -= centerTotal;
+      if (this.pos < 0) this.pos += centerTotal;
 
-      const pos = this.computePosition();
-      this.cx = pos.x;
-      this.cy = pos.y;
+      const pos = this.computePos();
+      this.x = pos.x;
+      this.y = pos.y;
       this.updateVisual();
     }
 
     updateVisual(force = false) {
-      // overlay is positioned exactly over SVG, so we can use SVG coordinates directly
-      // Use transform translate3d for GPU acceleration and include center offset
-      this.el.style.transform = `translate3d(${this.cx}px, ${this.cy}px, 0) translate(-50%, -50%)`;
+      // map svg coords to page coords
+      const page = svgToPage(this.x, this.y);
+      // place element using transform (include center offset)
+      this.el.style.transform = `translate3d(${page.px}px, ${page.py}px, 0) translate(-50%, -50%)`;
       if (force) {
-        this.el.style.left = `${this.cx}px`;
-        this.el.style.top = `${this.cy}px`;
+        this.el.style.left = `${page.px}px`;
+        this.el.style.top = `${page.py}px`;
       }
+    }
+
+    reset() {
+      this.pos = Math.random() * centerTotal;
+      this.lateral = rand(-20, 20); // small lateral jitter
+      this.updateVisual(true);
     }
   }
 
@@ -153,46 +315,57 @@
       this.rafId = null;
       this.lastTime = null;
 
-      // DOM refs
-      this.svg = document.getElementById(SVG_ID);
-      this.overlay = document.getElementById(OVERLAY_ID);
-      this.resultEl = document.getElementById("result");
+      // DOM
+      svgEl = document.getElementById('trackSvg');
+      overlayEl = document.getElementById('overlay');
+      bandEl = document.getElementById('band');
+      outerStrokeEl = document.getElementById('outerStroke');
+      innerStrokeEl = document.getElementById('innerStroke');
+      centerlineEl = document.getElementById('centerline');
 
-      if (!this.svg || !this.overlay) {
-        console.error("SVG 또는 overlay 요소를 찾을 수 없습니다.");
+      if (!svgEl || !overlayEl || !bandEl) {
+        console.error('필요한 DOM 요소를 찾을 수 없습니다.');
         return;
       }
 
-      // build band path into SVG
-      const bandPath = buildBandPath(OUTER, INNER);
-      const bandEl = document.getElementById("band");
-      if (bandEl) bandEl.setAttribute("d", bandPath);
-
-      // optional centerline for debug
-      const centerlineEl = document.getElementById("centerline");
-      if (centerlineEl) centerlineEl.setAttribute("d", buildCenterlinePath(CENTER));
+      // build shapes
+      bandEl.setAttribute('d', buildBandPath());
+      const outlines = buildOutlinePaths();
+      outerStrokeEl.setAttribute('d', outlines.outer);
+      innerStrokeEl.setAttribute('d', outlines.inner);
+      centerlineEl.setAttribute('d', buildCenterlinePath());
 
       this.initRunners();
       this.bindUI();
+
+      // handle resize: reposition runners when SVG scales
+      window.addEventListener('resize', () => {
+        this.runners.forEach(r => r.updateVisual(true));
+      });
     }
 
     initRunners() {
-      // clear existing
+      // clear existing DOM runners
       this.runners.forEach(r => {
         if (r.el && r.el.parentNode) r.el.parentNode.removeChild(r.el);
       });
       this.runners = [];
-
-      // create runners attached to overlay
       for (let i = 0; i < this.numRunners; i++) {
-        this.runners.push(new Runner(i, this.overlay));
+        this.runners.push(new Runner(i, overlayEl));
       }
     }
 
     startRace() {
-      if (this.resultEl) this.resultEl.textContent = "";
+      const resultEl = document.getElementById('result');
+      if (resultEl) resultEl.textContent = '';
       this.running = true;
       this.lastTime = performance.now();
+      // disable input while running
+      const numInput = document.getElementById('numRunners');
+      const startBtn = document.getElementById('startBtn');
+      if (numInput) numInput.disabled = true;
+      if (startBtn) startBtn.disabled = true;
+
       if (!this.rafId) this.rafId = requestAnimationFrame(this.loop.bind(this));
     }
 
@@ -202,23 +375,24 @@
         cancelAnimationFrame(this.rafId);
         this.rafId = null;
       }
+      // enable input
+      const numInput = document.getElementById('numRunners');
+      const startBtn = document.getElementById('startBtn');
+      if (numInput) numInput.disabled = false;
+      if (startBtn) startBtn.disabled = false;
     }
 
     loop(now) {
       const deltaMs = now - (this.lastTime || now);
       this.lastTime = now;
       const deltaSec = deltaMs / 1000;
-
       this.update(deltaSec);
-
-      if (this.running) {
-        this.rafId = requestAnimationFrame(this.loop.bind(this));
-      }
+      if (this.running) this.rafId = requestAnimationFrame(this.loop.bind(this));
     }
 
     update(deltaSec) {
       for (const r of this.runners) r.step(deltaSec);
-      // 우승 판정 등은 필요 시 추가
+      // 우승 판정 등은 필요 시 추가 가능
     }
 
     setNumRunners(n) {
@@ -227,18 +401,25 @@
     }
 
     bindUI() {
-      const startBtn = document.getElementById("startBtn");
-      const stopBtn = document.getElementById("stopBtn");
-      const numInput = document.getElementById("numRunners");
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const numInput = document.getElementById('numRunners');
 
-      if (startBtn) startBtn.addEventListener("click", () => this.startRace());
-      if (stopBtn) stopBtn.addEventListener("click", () => this.stopRace());
-      if (numInput) numInput.addEventListener("change", (e) => {
-        this.setNumRunners(e.target.value);
+      if (startBtn) startBtn.addEventListener('click', () => {
+        // read input and apply
+        const n = numInput ? parseInt(numInput.value, 10) : this.numRunners;
+        const validN = Math.max(1, Math.min(12, isNaN(n) ? this.numRunners : n));
+        this.setNumRunners(validN);
+        this.startRace();
+      });
+      if (stopBtn) stopBtn.addEventListener('click', () => this.stopRace());
+      if (numInput) numInput.addEventListener('change', (e) => {
+        const v = parseInt(e.target.value, 10);
+        if (!isNaN(v) && !this.running) this.setNumRunners(v);
       });
     }
   }
 
-  // 인스턴스 생성 및 전역 바인딩
+  // create global game
   window.game = new GameManager(DEFAULT_RUNNERS);
 })();
