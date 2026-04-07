@@ -1,3 +1,5 @@
+// gamemanager.js
+
 class Runner {
   constructor(index) {
     this.index = index;
@@ -8,25 +10,36 @@ class Runner {
     // 레인 오프셋: 항상 -120 ~ 0 범위 (외곽에서 시작)
     this.laneOffset = -Math.min(index * 20, 120);
 
+    // 레인별 고정 반지름 (속도와 무관)
+    this.laneRadius = Math.max(200, 200 + this.laneOffset);
+
     this.element = document.createElement("div");
     this.element.className = "runner";
+    // 색상 필터은 유지해도 되고, 이미지/크기는 CSS에서 담당
     this.element.style.filter = `hue-rotate(${index * 45}deg)`;
     document.querySelector(".stadium").appendChild(this.element);
+
+    // 초기 위치 설정 (left/top 사용)
+    const pos = this.getPositionAt(this.segment, this.t);
+    this.updatePosition(pos.x, pos.y);
   }
 
   reset() {
     this.segment = 0;
     this.t = 0;
     this.speed = Math.random() * 0.01 + 0.005;
-    this.updatePosition(400, 0 + this.laneOffset); // 출발점 (상단 직선 외곽)
+    const pos = this.getPositionAt(this.segment, this.t);
+    this.updatePosition(pos.x, pos.y);
   }
 
+  // 위치 업데이트: transform 대신 left/top 사용
   updatePosition(x, y) {
-    this.element.style.transform = `translate(${x}px, ${y}px)`;
+    this.element.style.left = `${x}px`;
+    this.element.style.top = `${y}px`;
   }
 
   move() {
-    // 곡선 구간에서는 속도를 줄임 (이 값은 위치 계산에 직접 영향을 주지 않음)
+    // 곡선 구간에서는 속도를 줄임 (시각적 효과만)
     let effectiveSpeed = this.speed;
     if (this.segment === 1 || this.segment === 3) {
       effectiveSpeed *= 0.7;
@@ -43,18 +56,15 @@ class Runner {
     }
 
     let x, y;
-
-    // 고정된 레인 반지름: 속도에 의존하지 않음
-    const laneRadius = Math.max(200, 200 + this.laneOffset);
+    const laneRadius = this.laneRadius;
 
     switch (this.segment) {
       case 0: // 상단 직선 (200,0 → 600,0)
         x = 200 + 400 * this.t;
-        // Y는 laneOffset만 반영 (속도 영향 제거)
         y = 0 + this.laneOffset;
         break;
 
-      case 1: // 우측 곡선 (외곽만 사용), 반지름은 laneRadius로 고정
+      case 1: // 우측 곡선
         {
           const cxR = 600, cyR = 200;
           const rR = laneRadius;
@@ -66,11 +76,10 @@ class Runner {
 
       case 2: // 하단 직선 (600,400 → 200,400)
         x = 600 - 400 * this.t;
-        // 하단 직선은 -laneOffset으로 외곽 유지 (속도 영향 제거)
         y = 400 - this.laneOffset;
         break;
 
-      case 3: // 좌측 곡선 (외곽만 사용)
+      case 3: // 좌측 곡선
         {
           const cxL = 200, cyL = 200;
           const rL = laneRadius;
@@ -101,7 +110,8 @@ class GameManager {
   }
 
   startRace() {
-    document.getElementById("result").textContent = "";
+    const resultEl = document.getElementById("result");
+    if (resultEl) resultEl.textContent = "";
     this.runners.forEach(r => r.reset());
     clearInterval(this.interval);
     this.interval = setInterval(() => this.updateRace(), 50);
@@ -111,7 +121,8 @@ class GameManager {
     for (let runner of this.runners) {
       if (runner.move()) {
         clearInterval(this.interval);
-        document.getElementById("result").textContent =
+        const resultEl = document.getElementById("result");
+        if (resultEl) resultEl.textContent =
           `우승자: ${runner.index + 1}번 러너!`;
         break;
       }
