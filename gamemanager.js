@@ -30,6 +30,8 @@ class Runner {
     this.speed = Math.random() * 0.01 + 0.005;
     const pos = this.getPositionAt(this.segment, this.t);
     this.updatePosition(pos.x, pos.y);
+
+    console.log(`[reset] runner ${this.index} laneOffset:${this.laneOffset} laneRadius:${this.laneRadius} speed:${this.speed.toFixed(4)} initX:${pos.x.toFixed(1)} initY:${pos.y.toFixed(1)}`);
   }
 
   getPositionAt(segment, t) {
