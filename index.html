@@ -6,20 +6,8 @@
 
   <!-- 스타일 연결 -->
   <link rel="stylesheet" href="track.css">
-  <link rel="stylesheet" href="player.css">
-  <link rel="stylesheet" href="ui.css">
-
-  <!-- 반응형 기본 설정 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-  <!-- UI 영역 -->
-  <div id="game-ui">
-    <button id="start-button">게임 시작</button>
-    <button id="train-button">선수 육성</button>
-    <button id="menu-button">메뉴</button>
-  </div>
-
   <!-- 경기장 -->
   <div class="track-container">
     <div class="track">
@@ -36,8 +24,5 @@
       <div class="lane" style="top: calc(6 * (100% / 7));"><span class="lane-number">7</span></div>
     </div>
   </div>
-
-  <!-- 게임 로직 -->
-  <script src="gamemanager.js"></script>
 </body>
 </html>
