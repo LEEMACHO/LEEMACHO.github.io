@@ -6,6 +6,7 @@
 
   <!-- 스타일 연결 -->
   <link rel="stylesheet" href="track.css">
+  <link rel="stylesheet" href="player.css">
 </head>
 <body>
   <!-- 경기장 -->
@@ -15,14 +16,17 @@
       <div class="finish-line"></div>
 
       <!-- 7개의 레인 -->
-      <div class="lane" style="top: calc(0 * (100% / 7));"><span class="lane-number">1</span></div>
-      <div class="lane" style="top: calc(1 * (100% / 7));"><span class="lane-number">2</span></div>
-      <div class="lane" style="top: calc(2 * (100% / 7));"><span class="lane-number">3</span></div>
-      <div class="lane" style="top: calc(3 * (100% / 7));"><span class="lane-number">4</span></div>
-      <div class="lane" style="top: calc(4 * (100% / 7));"><span class="lane-number">5</span></div>
-      <div class="lane" style="top: calc(5 * (100% / 7));"><span class="lane-number">6</span></div>
-      <div class="lane" style="top: calc(6 * (100% / 7));"><span class="lane-number">7</span></div>
+      <div class="lane lane-1"><span class="lane-number">1</span><div class="player main"></div></div>
+      <div class="lane lane-2"><span class="lane-number">2</span><div class="player opponent"></div></div>
+      <div class="lane lane-3"><span class="lane-number">3</span><div class="player opponent"></div></div>
+      <div class="lane lane-4"><span class="lane-number">4</span><div class="player opponent"></div></div>
+      <div class="lane lane-5"><span class="lane-number">5</span><div class="player opponent"></div></div>
+      <div class="lane lane-6"><span class="lane-number">6</span><div class="player opponent"></div></div>
+      <div class="lane lane-7"><span class="lane-number">7</span><div class="player opponent"></div></div>
     </div>
   </div>
+
+  <!-- 게임 로직 -->
+  <script src="gamemanager.js"></script>
 </body>
 </html>
