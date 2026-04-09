@@ -13,7 +13,7 @@
 .track {
   width: 100%;
   height: 100%;
-  background: #d2691e; /* 붉은색 트랙 */
+  background: #d2691e;
   border: 5px solid #333;
   position: relative;
 }
@@ -23,36 +23,7 @@
   position: absolute;
   left: 0;
   width: 100%;
-  height: calc(100% / 7);
+  height: calc(400px / 7); /* 400px 높이를 7등분 */
   border-top: 2px solid white;
   box-sizing: border-box;
-}
-
-/* 레인 번호 표시 */
-.lane-number {
-  position: absolute;
-  left: 10px;
-  font-size: 20px;
-  font-weight: bold;
-  color: white;
-}
-
-/* 스타트 라인 */
-.start-line {
-  position: absolute;
-  left: 5%;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  background: white;
-}
-
-/* 피니시 라인 */
-.finish-line {
-  position: absolute;
-  right: 5%;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  background: yellow;
 }
