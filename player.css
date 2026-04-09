@@ -1,8 +1,9 @@
+/* 선수 기본 스타일 */
 .player {
   position: absolute;
   width: 40px;
   height: 40px;
-  background-image: url("RUNNER.png");
+  background-image: url("RUNNER.png"); /* 러너 이미지 */
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -10,12 +11,12 @@
   transform: translateY(-50%);
 }
 
-/* 플레이어 강조 */
+/* 플레이어 (1번 레인 고정) */
 .player.main {
-  filter: drop-shadow(0 0 5px red);
+  filter: drop-shadow(0 0 5px red); /* 플레이어 강조 */
 }
 
-/* 상대 선수 강조 */
+/* 상대 선수들 */
 .player.opponent {
   filter: drop-shadow(0 0 5px green);
 }
