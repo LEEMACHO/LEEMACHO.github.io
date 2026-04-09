@@ -22,10 +22,10 @@
 }
 
 /* 레인별 위치 (각 레인 중앙) */
-.lane-1 .player { top: calc((0 * (400px / 7)) + (400px / 14)); }
-.lane-2 .player { top: calc((1 * (400px / 7)) + (400px / 14)); }
-.lane-3 .player { top: calc((2 * (400px / 7)) + (400px / 14)); }
-.lane-4 .player { top: calc((3 * (400px / 7)) + (400px / 14)); }
-.lane-5 .player { top: calc((4 * (400px / 7)) + (400px / 14)); }
-.lane-6 .player { top: calc((5 * (400px / 7)) + (400px / 14)); }
-.lane-7 .player { top: calc((6 * (400px / 7)) + (400px / 14)); }
+.lane-1 .player { top: calc((0 * (400px / 7)); }
+.lane-2 .player { top: calc((1 * (400px / 7)); }
+.lane-3 .player { top: calc((2 * (400px / 7)); }
+.lane-4 .player { top: calc((3 * (400px / 7)); }
+.lane-5 .player { top: calc((4 * (400px / 7)); }
+.lane-6 .player { top: calc((5 * (400px / 7)); }
+.lane-7 .player { top: calc((6 * (400px / 7)); }
