@@ -1,32 +1,30 @@
-/* 선수 기본 스타일 */
 .player {
   position: absolute;
   width: 40px;
   height: 40px;
-  background-image: url("RUNNER.png"); /* 러너 이미지 */
+  background-image: url("RUNNER.png");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
+  left: 5%; /* 스타트 라인 */
   transform: translateY(-50%);
 }
 
-/* 플레이어 (1번 레인 고정) */
+/* 플레이어 강조 */
 .player.main {
-  left: 5%;
-  filter: drop-shadow(0 0 5px red); /* 플레이어 강조 */
+  filter: drop-shadow(0 0 5px red);
 }
 
-/* 상대 선수들 */
+/* 상대 선수 강조 */
 .player.opponent {
-  left: 5%;
   filter: drop-shadow(0 0 5px green);
 }
 
-/* 레인별 위치 조정 (50px 간격) */
-.lane-1 .player { top: 50px; }
-.lane-2 .player { top: 100px; }
-.lane-3 .player { top: 150px; }
-.lane-4 .player { top: 200px; }
-.lane-5 .player { top: 250px; }
-.lane-6 .player { top: 300px; }
-.lane-7 .player { top: 350px; }
+/* 레인별 위치 (각 레인 중앙) */
+.lane-1 .player { top: calc((0 * (400px / 7)) + (400px / 14)); }
+.lane-2 .player { top: calc((1 * (400px / 7)) + (400px / 14)); }
+.lane-3 .player { top: calc((2 * (400px / 7)) + (400px / 14)); }
+.lane-4 .player { top: calc((3 * (400px / 7)) + (400px / 14)); }
+.lane-5 .player { top: calc((4 * (400px / 7)) + (400px / 14)); }
+.lane-6 .player { top: calc((5 * (400px / 7)) + (400px / 14)); }
+.lane-7 .player { top: calc((6 * (400px / 7)) + (400px / 14)); }
