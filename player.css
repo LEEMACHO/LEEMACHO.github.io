@@ -3,7 +3,7 @@
   position: absolute;
   width: 40px;   /* 러너 이미지 크기 */
   height: 40px;
-  background-image: url("RUNNER.png"); /* 러너 이미지 경로 */
+  background-image: url("https://raw.githubusercontent.com/LEEMACHO/LEEMACHO.github.io/refs/heads/main/RUNNER.png"); /* 러너 이미지 경로 */
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
