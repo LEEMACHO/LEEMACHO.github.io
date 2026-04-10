@@ -3,29 +3,21 @@
   position: absolute;
   width: 40px;
   height: 40px;
-  background-image: url("RUNNER.png"); /* 러너 이미지 */
+  background-image: url("RUNNER.png");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   left: 5%; /* 스타트 라인 */
-  transform: translateY(-50%);
+  top: 50%; /* 레인 높이의 중앙 */
+  transform: translateY(-50%); /* 정확히 중앙 정렬 */
 }
 
 /* 플레이어 (1번 레인 고정) */
 .player.main {
-  filter: drop-shadow(0 0 5px red); /* 플레이어 강조 */
+  filter: drop-shadow(0 0 5px red);
 }
 
 /* 상대 선수들 */
 .player.opponent {
   filter: drop-shadow(0 0 5px green);
 }
-
-/* 레인별 위치 (각 레인 중앙) */
-.lane-1 .player { top: calc((0 * (100% / 7)) + (100% / 14)) }
-.lane-2 .player { top: calc((1 * (100% / 7)) + (100% / 14)) }
-.lane-3 .player { top: calc((2 * (100% / 7)) + (100% / 14)) }
-.lane-4 .player { top: calc((3 * (100% / 7)) + (100% / 14)) }
-.lane-5 .player { top: calc((4 * (100% / 7)) + (100% / 14)) }
-.lane-6 .player { top: calc((5 * (100% / 7)) + (100% / 14)) }
-.lane-7 .player { top: calc((6 * (100% / 7)) + (100% / 14)) }
