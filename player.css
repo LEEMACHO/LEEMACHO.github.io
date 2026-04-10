@@ -8,7 +8,7 @@
   background-repeat: no-repeat;
   background-position: center;
   left: 5%; /* 스타트 라인 */
-  /* transform: translateY(-50%); */
+  transform: translateY(-50%);
 }
 
 /* 플레이어 (1번 레인 고정) */
