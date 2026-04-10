@@ -15,12 +15,12 @@
   height: 100%;
   background: #d2691e; /* 붉은색 트랙 */
   border: 5px solid #333;
-  position: relative;
+  position: relative; /* 기준 컨테이너 */
 }
 
 /* 각 레인 (400px 높이를 7등분) */
 .lane {
- /* position: relative; */
+  position: absolute;
   left: 0;
   width: 100%;
   height: calc(400px / 7);
@@ -28,10 +28,20 @@
   box-sizing: border-box;
 }
 
+/* 레인별 Y좌표 */
+.lane-1 { top: calc(0 * (400px / 7)); }
+.lane-2 { top: calc(1 * (400px / 7)); }
+.lane-3 { top: calc(2 * (400px / 7)); }
+.lane-4 { top: calc(3 * (400px / 7)); }
+.lane-5 { top: calc(4 * (400px / 7)); }
+.lane-6 { top: calc(5 * (400px / 7)); }
+.lane-7 { top: calc(6 * (400px / 7)); }
+
 /* 레인 번호 표시 */
 .lane-number {
   position: absolute;
   left: 10px;
+  top: 5px;
   font-size: 20px;
   font-weight: bold;
   color: white;
