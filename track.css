@@ -20,7 +20,7 @@
 
 /* 각 레인 (400px 높이를 7등분) */
 .lane {
-  position: relative;
+ /* position: relative; */
   left: 0;
   width: 100%;
   height: calc(400px / 7);
