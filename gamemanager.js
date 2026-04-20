@@ -80,11 +80,11 @@ function startRace() {
         results.push({ name: runner.name, time: time });
         console.log(`${runner.name} 완주! 기록: ${time.toFixed(2)}초`);
 
-        // 모든 주자가 도착했으면 순위 계산
-        if (results.length === runners.length) {
+        // 3명 도착하면 순위 계산 후 타이머 멈춤
+        if (results.length === 3) {
           results.sort((a, b) => a.time - b.time);
           let rankingText = "🏆 경기 결과<br>";
-          results.slice(0, 3).forEach((r, i) => {
+          results.forEach((r, i) => {
             rankingText += `${i + 1}위: ${r.name} - ${r.time.toFixed(2)}초<br>`;
           });
           resultsDisplay.innerHTML = rankingText;
