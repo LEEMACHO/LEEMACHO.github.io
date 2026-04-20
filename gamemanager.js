@@ -12,7 +12,6 @@ function estimateTime(stamina, speed, accel) {
   return tLower + (tUpper - tLower) * ratio;
 }
 
-// 상대 선수 능력치 랜덤 생성 (80~120%)
 function randomOpponentStats(baseStats) {
   function randInRange(value) {
     const min = Math.floor(value * 0.8);
@@ -31,16 +30,16 @@ let lastTime;
 let distance;
 let time;
 let velocity;
+let runner = document.querySelector(".player.main");
+let timerDisplay = document.getElementById("timer");
 
-// 경기 시작
 function startRace() {
-  const runner = document.querySelector(".player.main");
   distance = 0;
   time = 0;
   velocity = 0;
   lastTime = null;
+  runner.style.left = "5%";
 
-  // 상대 선수 능력치 생성
   const opponents = document.querySelectorAll(".player.opponent");
   opponents.forEach((opponent, index) => {
     const stats = randomOpponentStats(mainPlayer);
@@ -50,13 +49,16 @@ function startRace() {
 
   function update(deltaTime) {
     time += deltaTime;
+    timerDisplay.textContent = `기록: ${time.toFixed(2)}초`;
+
     const expectedTime = estimateTime(mainPlayer.stamina, mainPlayer.speed, mainPlayer.accel);
     const avgVelocity = track.lengthPx / expectedTime;
     velocity = avgVelocity;
     distance += velocity * deltaTime;
     runner.style.left = `${5 + distance}px`;
+
     if (distance >= track.lengthPx) {
-      console.log(`플레이어 완주 시간: ${time.toFixed(2)}초 (예상: ${expectedTime.toFixed(2)}초)`);
+      timerDisplay.textContent = `최종 기록: ${time.toFixed(2)}초`;
       cancelAnimationFrame(animationId);
     }
   }
@@ -72,12 +74,9 @@ function startRace() {
   animationId = requestAnimationFrame(loop);
 }
 
-// 경기 리셋
 function resetRace() {
   cancelAnimationFrame(animationId);
-  const runner = document.querySelector(".player.main");
   runner.style.left = "5%";
-  const opponents = document.querySelectorAll(".player.opponent");
-  opponents.forEach(opponent => opponent.style.left = "5%");
+  timerDisplay.textContent = "기록: 0.00초";
   console.log("경기 리셋 완료");
 }
