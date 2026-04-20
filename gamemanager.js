@@ -12,6 +12,7 @@ function estimateTime(stamina, speed, accel) {
   return tLower + (tUpper - tLower) * ratio;
 }
 
+// 상대 선수 능력치 랜덤 생성 (80~120%)
 function randomOpponentStats(baseStats) {
   function randInRange(value) {
     const min = Math.floor(value * 0.8);
@@ -27,40 +28,70 @@ function randomOpponentStats(baseStats) {
 
 let animationId;
 let lastTime;
-let distance;
 let time;
-let velocity;
-let runner = document.querySelector(".player.main");
+let runners = [];
+let results = [];
 let timerDisplay = document.getElementById("timer");
+let resultsDisplay = document.getElementById("results");
 
 function startRace() {
-  distance = 0;
   time = 0;
-  velocity = 0;
   lastTime = null;
-  runner.style.left = "5%";
+  results = [];
+  resultsDisplay.textContent = "";
 
+  // 플레이어 초기화
+  const mainRunner = {
+    name: "플레이어",
+    element: document.querySelector(".player.main"),
+    stats: mainPlayer,
+    distance: 0,
+    finished: false
+  };
+  runners = [mainRunner];
+
+  // 상대 선수 초기화
   const opponents = document.querySelectorAll(".player.opponent");
   opponents.forEach((opponent, index) => {
     const stats = randomOpponentStats(mainPlayer);
-    const expectedTime = estimateTime(stats.stamina, stats.speed, stats.accel);
-    console.log(`상대 ${index + 1} 능력치:`, stats, "예상 기록:", expectedTime.toFixed(2), "초");
+    runners.push({
+      name: `상대${index + 1}`,
+      element: opponent,
+      stats: stats,
+      distance: 0,
+      finished: false
+    });
   });
 
   function update(deltaTime) {
     time += deltaTime;
     timerDisplay.textContent = `기록: ${time.toFixed(2)}초`;
 
-    const expectedTime = estimateTime(mainPlayer.stamina, mainPlayer.speed, mainPlayer.accel);
-    const avgVelocity = track.lengthPx / expectedTime;
-    velocity = avgVelocity;
-    distance += velocity * deltaTime;
-    runner.style.left = `${5 + distance}px`;
+    runners.forEach(runner => {
+      if (runner.finished) return;
 
-    if (distance >= track.lengthPx) {
-      timerDisplay.textContent = `최종 기록: ${time.toFixed(2)}초`;
-      cancelAnimationFrame(animationId);
-    }
+      const expectedTime = estimateTime(runner.stats.stamina, runner.stats.speed, runner.stats.accel);
+      const avgVelocity = track.lengthPx / expectedTime;
+      runner.distance += avgVelocity * deltaTime;
+      runner.element.style.left = `${5 + runner.distance}px`;
+
+      if (runner.distance >= track.lengthPx) {
+        runner.finished = true;
+        results.push({ name: runner.name, time: time });
+        console.log(`${runner.name} 완주! 기록: ${time.toFixed(2)}초`);
+
+        // 모든 주자가 도착했으면 순위 계산
+        if (results.length === runners.length) {
+          results.sort((a, b) => a.time - b.time);
+          let rankingText = "🏆 경기 결과<br>";
+          results.slice(0, 3).forEach((r, i) => {
+            rankingText += `${i + 1}위: ${r.name} - ${r.time.toFixed(2)}초<br>`;
+          });
+          resultsDisplay.innerHTML = rankingText;
+          cancelAnimationFrame(animationId);
+        }
+      }
+    });
   }
 
   function loop(timestamp) {
@@ -76,7 +107,13 @@ function startRace() {
 
 function resetRace() {
   cancelAnimationFrame(animationId);
-  runner.style.left = "5%";
+  runners.forEach(r => {
+    r.element.style.left = "5%";
+    r.distance = 0;
+    r.finished = false;
+  });
   timerDisplay.textContent = "기록: 0.00초";
+  resultsDisplay.textContent = "";
+  results = [];
   console.log("경기 리셋 완료");
 }
