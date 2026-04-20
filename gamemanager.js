@@ -12,11 +12,12 @@ function estimateTime(stamina, speed, accel) {
   return tLower + (tUpper - tLower) * ratio;
 }
 
+// 상대 선수 능력치 생성 (범위: 50% ~ 150%)
 function randomOpponentStats(baseStats) {
   function randInRange(value) {
-    const min = Math.floor(value * 0.5);
-    const max = Math.floor(value * 1.5);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    // 0.5 (50%) ~ 1.5 (150%) 사이의 난수 생성
+    const multiplier = 0.5 + (Math.random() * 1.0); 
+    return Math.floor(value * multiplier);
   }
   return {
     stamina: randInRange(baseStats.stamina),
@@ -34,15 +35,13 @@ const timerDisplay = document.getElementById("timer");
 const resultsDisplay = document.getElementById("results");
 
 function startRace() {
-  // 1. 초기화
   time = 0;
   lastTime = null;
   results = [];
   if (resultsDisplay) resultsDisplay.innerHTML = "";
 
-  // 2. 플레이어 및 상대 선수 객체 생성
   const mainRunner = {
-    name: "플레이어",
+    name: "플레이어(나)",
     element: document.querySelector(".player.main"),
     stats: mainPlayer,
     distance: 0,
@@ -50,50 +49,62 @@ function startRace() {
   };
   
   runners = [mainRunner];
+
+  // 상대 선수 생성 및 콘솔 상세 출력
   const opponents = document.querySelectorAll(".player.opponent");
+  
+  console.log("%c--- 🏃 경기 시작: 선수 능력치 정보 (50%~150% 적용) ---", "color: blue; font-weight: bold;");
+  console.log(`[내 캐릭터] 체력:${mainPlayer.stamina}, 속도:${mainPlayer.speed}, 가속:${mainPlayer.accel}`);
+
   opponents.forEach((opponent, index) => {
+    const stats = randomOpponentStats(mainPlayer);
+    const opponentName = `상대${index + 1}`;
+    
     runners.push({
-      name: `상대${index + 1}`,
+      name: opponentName,
       element: opponent,
-      stats: randomOpponentStats(mainPlayer),
+      stats: stats,
       distance: 0,
       finished: false
     });
-  });
 
-  // 3. 업데이트 로직
+    // 콘솔창에 상대방 능력치와 원본 대비 비율 표시
+    const ratio = (( (stats.stamina + stats.speed + stats.accel) / (mainPlayer.stamina + mainPlayer.speed + mainPlayer.accel) ) * 100).toFixed(0);
+    console.log(`[${opponentName}] 체력:${stats.stamina}, 속도:${stats.speed}, 가속:${stats.accel} (내 능력치의 약 ${ratio}%)`);
+  });
+  console.log("-----------------------------------------------------------");
+
   function update(deltaTime) {
     time += deltaTime;
     timerDisplay.textContent = `기록: ${time.toFixed(2)}초`;
 
-    runners.forEach(runner => {
-      if (runner.finished) return;
+    for (let runner of runners) {
+      if (runner.finished) continue;
 
       const expectedTime = estimateTime(runner.stats.stamina, runner.stats.speed, runner.stats.accel);
       const avgVelocity = track.lengthPx / expectedTime;
       runner.distance += avgVelocity * deltaTime;
       
-      // CSS 위치 업데이트 (calc 사용하여 %와 px 혼합 계산)
       runner.element.style.left = `calc(5% + ${runner.distance}px)`;
 
-      // 골인 지점 도달 시
       if (runner.distance >= track.lengthPx) {
         runner.finished = true;
         results.push({ name: runner.name, time: time });
-      }
-    });
 
-    // 4. 종료 조건: 상위 3명 통과 시
-    if (results.length >= 3) {
-      cancelAnimationFrame(animationId);
-      displayRanking();
+        // 상위 3명이 들어오면 즉시 중단
+        if (results.length >= 3) {
+          timerDisplay.textContent = `최종 기록: ${time.toFixed(2)}초`;
+          cancelAnimationFrame(animationId);
+          displayRanking();
+          return; 
+        }
+      }
     }
   }
 
   function displayRanking() {
     results.sort((a, b) => a.time - b.time);
     let rankingText = "🏆 <b>TOP 3 결과</b><br>";
-    // 상위 3개만 추출
     results.slice(0, 3).forEach((r, i) => {
       rankingText += `${i + 1}위: ${r.name} (${r.time.toFixed(2)}초)<br>`;
     });
@@ -101,6 +112,7 @@ function startRace() {
     if (resultsDisplay) {
       resultsDisplay.innerHTML = rankingText;
     }
+    console.log("%c경기 종료: 상위 3명 통과 완료", "color: green; font-weight: bold;");
   }
 
   function loop(timestamp) {
@@ -116,16 +128,11 @@ function startRace() {
 
 function resetRace() {
   cancelAnimationFrame(animationId);
-  lastTime = null; // 타임스탬프 초기화 필수
+  lastTime = null;
   time = 0;
   results = [];
-  
   if (timerDisplay) timerDisplay.textContent = "기록: 0.00초";
   if (resultsDisplay) resultsDisplay.innerHTML = "";
-  
-  // 모든 주자 원위치
-  const allPlayers = document.querySelectorAll(".player");
-  allPlayers.forEach(p => {
-    p.style.left = "5%";
-  });
+  document.querySelectorAll(".player").forEach(p => p.style.left = "5%");
+  console.log("경기가 리셋되었습니다.");
 }
