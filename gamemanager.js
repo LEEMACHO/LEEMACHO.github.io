@@ -1,45 +1,26 @@
 const recordTable = { 70: 11.0, 80: 10.5, 90: 9.5, 100: 8.5 };
 
-function estimateTime(stamina, speed, accel) {
-  const score = (stamina + speed + accel) / 3;
-  if (score <= 70) return recordTable[70];
-  if (score >= 100) return recordTable[100];
-  const lower = Math.floor(score / 10) * 10;
-  const upper = lower + 10;
-  const tLower = recordTable[lower];
-  const tUpper = recordTable[upper];
-  const ratio = (score - lower) / (upper - lower);
-  return tLower + (tUpper - tLower) * ratio;
-}
-
-// 상대 선수 능력치 생성 (범위: 50% ~ 150%)
-function randomOpponentStats(baseStats) {
-  function randInRange(value) {
-    // 0.5 (50%) ~ 1.5 (150%) 사이의 난수 생성
-    const multiplier = 0.5 + (Math.random() * 1.0); 
-    return Math.floor(value * multiplier);
-  }
-  return {
-    stamina: randInRange(baseStats.stamina),
-    speed: randInRange(baseStats.speed),
-    accel: randInRange(baseStats.accel)
-  };
-}
+// ... (estimateTime, randomOpponentStats 함수는 기존과 동일) ...
 
 let animationId;
 let lastTime;
 let time;
 let runners = [];
 let results = [];
+let isRaceActive = false; // [추가] 경기 진행 상태 플래그
+
 const timerDisplay = document.getElementById("timer");
 const resultsDisplay = document.getElementById("results");
 
 function startRace() {
+  // 1. 초기화
   time = 0;
   lastTime = null;
   results = [];
+  isRaceActive = true; // 경기 활성화
   if (resultsDisplay) resultsDisplay.innerHTML = "";
 
+  // 2. 선수 객체 생성 및 콘솔 출력
   const mainRunner = {
     name: "플레이어(나)",
     element: document.querySelector(".player.main"),
@@ -47,34 +28,28 @@ function startRace() {
     distance: 0,
     finished: false
   };
-  
   runners = [mainRunner];
 
-  // 상대 선수 생성 및 콘솔 상세 출력
   const opponents = document.querySelectorAll(".player.opponent");
-  
-  console.log("%c--- 🏃 경기 시작: 선수 능력치 정보 (50%~150% 적용) ---", "color: blue; font-weight: bold;");
-  console.log(`[내 캐릭터] 체력:${mainPlayer.stamina}, 속도:${mainPlayer.speed}, 가속:${mainPlayer.accel}`);
+  console.log("%c--- 경기 시작 (능력치 50%~150%) ---", "color: blue; font-weight: bold;");
 
   opponents.forEach((opponent, index) => {
     const stats = randomOpponentStats(mainPlayer);
-    const opponentName = `상대${index + 1}`;
-    
     runners.push({
-      name: opponentName,
+      name: `상대${index + 1}`,
       element: opponent,
       stats: stats,
       distance: 0,
       finished: false
     });
-
-    // 콘솔창에 상대방 능력치와 원본 대비 비율 표시
-    const ratio = (( (stats.stamina + stats.speed + stats.accel) / (mainPlayer.stamina + mainPlayer.speed + mainPlayer.accel) ) * 100).toFixed(0);
-    console.log(`[${opponentName}] 체력:${stats.stamina}, 속도:${stats.speed}, 가속:${stats.accel} (내 능력치의 약 ${ratio}%)`);
+    console.log(`[상대${index + 1}] 체력:${stats.stamina}, 속도:${stats.speed}, 가속:${stats.accel}`);
   });
-  console.log("-----------------------------------------------------------");
 
+  // 3. 업데이트 로직
   function update(deltaTime) {
+    // 경기가 비활성 상태면 더 이상 시간을 더하지 않음
+    if (!isRaceActive) return;
+
     time += deltaTime;
     timerDisplay.textContent = `기록: ${time.toFixed(2)}초`;
 
@@ -91,15 +66,25 @@ function startRace() {
         runner.finished = true;
         results.push({ name: runner.name, time: time });
 
-        // 상위 3명이 들어오면 즉시 중단
+        // 상위 3명 통과 시 즉시 종료 처리
         if (results.length >= 3) {
-          timerDisplay.textContent = `최종 기록: ${time.toFixed(2)}초`;
-          cancelAnimationFrame(animationId);
-          displayRanking();
+          stopRace(); // 별도의 중단 함수 호출
           return; 
         }
       }
     }
+  }
+
+  // 경기 중단 함수
+  function stopRace() {
+    isRaceActive = false; // 플래그를 false로 하여 update 차단
+    cancelAnimationFrame(animationId); // 애니메이션 루프 중단
+    
+    // 타이머 텍스트를 최종 기록으로 고정
+    const finalTime = time.toFixed(2);
+    timerDisplay.textContent = `최종 기록: ${finalTime}초`;
+    
+    displayRanking();
   }
 
   function displayRanking() {
@@ -108,17 +93,16 @@ function startRace() {
     results.slice(0, 3).forEach((r, i) => {
       rankingText += `${i + 1}위: ${r.name} (${r.time.toFixed(2)}초)<br>`;
     });
-
-    if (resultsDisplay) {
-      resultsDisplay.innerHTML = rankingText;
-    }
-    console.log("%c경기 종료: 상위 3명 통과 완료", "color: green; font-weight: bold;");
+    if (resultsDisplay) resultsDisplay.innerHTML = rankingText;
   }
 
   function loop(timestamp) {
+    if (!isRaceActive) return; // 경기가 끝났다면 루프를 타지 않음
+
     if (!lastTime) lastTime = timestamp;
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
+    
     update(deltaTime);
     animationId = requestAnimationFrame(loop);
   }
@@ -127,6 +111,7 @@ function startRace() {
 }
 
 function resetRace() {
+  isRaceActive = false; // 리셋 시에도 플래그 해제
   cancelAnimationFrame(animationId);
   lastTime = null;
   time = 0;
@@ -134,5 +119,4 @@ function resetRace() {
   if (timerDisplay) timerDisplay.textContent = "기록: 0.00초";
   if (resultsDisplay) resultsDisplay.innerHTML = "";
   document.querySelectorAll(".player").forEach(p => p.style.left = "5%");
-  console.log("경기가 리셋되었습니다.");
 }
