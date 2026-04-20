@@ -1,9 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>100m 달리기 육성 게임</title>
+  <link rel="stylesheet" href="track.css">
+  <link rel="stylesheet" href="player.css">
+</head>
 <body>
   <div class="track-container">
     <div class="track">
       <div class="start-line"></div>
       <div class="finish-line"></div>
-      <!-- 레인들 -->
+
+      <!-- 7개의 레인 -->
       <div class="lane lane-1"><span class="lane-number">1</span><div class="player main"></div></div>
       <div class="lane lane-2"><span class="lane-number">2</span><div class="player opponent"></div></div>
       <div class="lane lane-3"><span class="lane-number">3</span><div class="player opponent"></div></div>
@@ -20,6 +29,9 @@
     <button id="reset-btn">리셋</button>
   </div>
 
+  <!-- 카운트다운 표시 -->
+  <div id="countdown" style="text-align:center; font-size:28px; margin-top:10px;"></div>
+
   <!-- 타이머 표시 -->
   <div id="timer" style="text-align:center; font-size:24px; margin-top:10px;">
     기록: 0.00초
@@ -30,3 +42,4 @@
   <script src="gamemanager.js"></script>
   <script src="controller.js"></script>
 </body>
+</html>
