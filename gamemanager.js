@@ -14,8 +14,8 @@ function estimateTime(stamina, speed, accel) {
 
 function randomOpponentStats(baseStats) {
   function randInRange(value) {
-    const min = Math.floor(value * 0.8);
-    const max = Math.floor(value * 1.2);
+    const min = Math.floor(value * 0.5);
+    const max = Math.floor(value * 1.5);
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
   return {
