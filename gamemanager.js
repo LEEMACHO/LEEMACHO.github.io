@@ -1,39 +1,4 @@
-/**
- * [설정 데이터] 능력치 기반 기준 기록 테이블
- */
-const recordTable = { 70: 11.0, 80: 10.5, 90: 9.5, 100: 8.5 };
-
-/**
- * [함수] 능력치 기반 예상 시간 계산 (기본 베이스)
- */
-function estimateTime(stamina, speed, accel) {
-  const score = (stamina + speed + accel) / 3;
-  if (score <= 70) return recordTable[70];
-  if (score >= 100) return recordTable[100];
-  const lower = Math.floor(score / 10) * 10;
-  const upper = lower + 10;
-  const tLower = recordTable[lower];
-  const tUpper = recordTable[upper];
-  const ratio = (score - lower) / (upper - lower);
-  return tLower + (tUpper - tLower) * ratio;
-}
-
-/**
- * [함수] 상대 선수 능력치 랜덤 생성 (50% ~ 150%)
- */
-function randomOpponentStats(baseStats) {
-  function randInRange(value) {
-    const multiplier = 0.8 + (Math.random() * 0.4); 
-    return Math.floor(value * multiplier);
-  }
-  return {
-    stamina: randInRange(baseStats.stamina),
-    speed: randInRange(baseStats.speed),
-    accel: randInRange(baseStats.accel)
-  };
-}
-
-// 전역 변수
+// 전역 변수 및 설정
 let animationId;
 let lastTime;
 let time;
@@ -45,51 +10,61 @@ const timerDisplay = document.getElementById("timer");
 const resultsDisplay = document.getElementById("results");
 
 /**
+ * [함수] 상대 선수 능력치 랜덤 생성 (50% ~ 150%)
+ */
+function randomOpponentStats(baseStats) {
+  const randInRange = (val) => Math.floor(val * (0.5 + Math.random()));
+  return {
+    stamina: randInRange(baseStats.stamina),
+    speed: randInRange(baseStats.speed),
+    accel: randInRange(baseStats.accel)
+  };
+}
+
+/**
  * [메인 함수] 경기 시작
  */
 function startRace() {
   time = 0;
   lastTime = null;
   results = [];
-  isRaceActive = true; 
+  isRaceActive = true;
   if (resultsDisplay) resultsDisplay.innerHTML = "";
 
   const typeNames = ["", "밸런스", "초반스퍼트(선입)", "후반역전(추입)"];
+  
+  // [수정] 트랙 길이를 1000px로 고정 참조
+  const trackLength = 1000; 
+  const startPos = 50; // CSS의 .start-line 위치 (50px)
 
-  // 1. 플레이어 생성 (기본 밸런스형)
-  runners = [{
-    name: "플레이어(나)",
-    element: document.querySelector(".player.main"),
-    stats: mainPlayer,
-    distance: 0,
+  // 1. 선수 객체 생성 함수
+  const createRunner = (name, element, stats, driveType) => ({
+    name,
+    element,
+    stats,
+    driveType,
+    distance: 0, // 달린 거리 (0~1000)
     velocity: 0,
-    driveType: 1, // 플레이어는 밸런스형 고정 (원할 시 랜덤 변경 가능)
+    currentStamina: stats.stamina * 8, // 체력 수치는 추후 조정 예정
+    maxStamina: stats.stamina * 8,
     finished: false
-  }];
+  });
 
-  // 2. 상대 선수 생성 (특성 랜덤 배정)
+  // 플레이어 및 상대 생성
+  runners = [createRunner("플레이어(나)", document.querySelector(".player.main"), mainPlayer, 1)];
+
   const opponents = document.querySelectorAll(".player.opponent");
-  console.log("%c--- 🏃 특성 기반 레이스 시작 (50%~150%) ---", "color: #3498db; font-weight: bold; font-size: 14px;");
+  console.log("%c--- 🏃 트랙 1000px 레이스 시작 ---", "color: #2ecc71; font-weight: bold;");
 
   opponents.forEach((opponent, index) => {
     const stats = randomOpponentStats(mainPlayer);
-    const driveType = Math.floor(Math.random() * 3) + 1; // 1, 2, 3 중 랜덤
-    
-    runners.push({
-      name: `상대${index + 1}`,
-      element: opponent,
-      stats: stats,
-      distance: 0,
-      velocity: 0,
-      driveType: driveType,
-      finished: false
-    });
-
-    console.log(`[상대${index + 1}] 타입: ${typeNames[driveType]} | 스탯합: ${stats.stamina + stats.speed + stats.accel}`);
+    const driveType = Math.floor(Math.random() * 3) + 1;
+    runners.push(createRunner(`상대${index + 1}`, opponent, stats, driveType));
+    console.log(`[상대${index + 1}] 타입: ${typeNames[driveType]}`);
   });
 
   /**
-   * 실시간 업데이트 루프
+   * 실시간 업데이트 엔진
    */
   function update(deltaTime) {
     if (!isRaceActive) return;
@@ -100,65 +75,66 @@ function startRace() {
     for (let runner of runners) {
       if (runner.finished) continue;
 
-      // --- [특성 엔진] 주행 지점에 따른 가속도 보정 ---
-      let accelMultiplier = 1.0;
-      const progress = runner.distance / track.lengthPx; // 0.0 ~ 1.0
+      const dist = runner.distance;
+      let staminaDrainRate = 1.0;
 
-      if (runner.driveType === 2) { 
-        // 초반 스퍼트형: 40% 지점까지 강력, 이후 급감
-        accelMultiplier = progress < 0.4 ? 1.9 : 0.55;
-      } else if (runner.driveType === 3) { 
-        // 후반 역전형: 60% 지점까지 대기, 이후 폭발
-        accelMultiplier = progress < 0.6 ? 0.45 : 2.3;
-      } else { 
-        // 밸런스형: 전 구간 안정적
-        accelMultiplier = 1.15;
+      // [특성 반영] 주행 지점 비율에 따른 체력 소모 (trackLength 기준 자동 계산)
+      if (runner.driveType === 2 && dist < trackLength * 0.4) {
+        staminaDrainRate = 2.5;
+      } else if (runner.driveType === 3 && dist > trackLength * 0.6) {
+        staminaDrainRate = 3.5;
       }
 
-      // 물리 공식 적용
-      const acceleration = (runner.stats.accel / 45) * accelMultiplier;
-      const maxVelocity = (runner.stats.speed * 2.3);
+      // [체력-속도 매커니즘]
+      if (runner.currentStamina > 0) {
+        const moveStep = runner.velocity * deltaTime;
+        runner.currentStamina -= (moveStep * staminaDrainRate);
 
-      // 속도 증가 (최고 속도 제한)
-      if (runner.velocity < maxVelocity) {
-        runner.velocity += acceleration;
+        const consumed = runner.maxStamina - runner.currentStamina;
+        let targetVelocity = (consumed * 0.8); 
+        const limit = runner.stats.speed * 2.5; 
+        runner.velocity = Math.min(targetVelocity, limit);
+      } else {
+        // 탈진 상태
+        runner.currentStamina = 0;
+        runner.velocity *= 0.97;
+        if (runner.velocity < 15) runner.velocity = 15;
       }
 
-      // 실제 이동
+      // [핵심 수정] 실제 위치 업데이트: 시작 지점(50px) + 달린 거리
       runner.distance += runner.velocity * deltaTime;
-      runner.element.style.left = `calc(5% + ${runner.distance}px)`;
+      runner.element.style.left = `${startPos + runner.distance}px`;
 
-      // 골인 체크
-      if (runner.distance >= track.lengthPx) {
+      // [핵심 수정] 골인 체크: 달린 거리가 1000px에 도달했는지 확인
+      if (runner.distance >= trackLength) {
         runner.finished = true;
+        // 정확히 결승선 위치에 고정
+        runner.element.style.left = `${startPos + trackLength}px`; 
         results.push({ name: runner.name, time: time, type: runner.driveType });
 
         if (results.length >= 3) {
           stopRace();
-          return; 
+          return;
         }
       }
     }
   }
 
   function stopRace() {
-    isRaceActive = false; 
-    cancelAnimationFrame(animationId); 
+    isRaceActive = false;
+    cancelAnimationFrame(animationId);
     timerDisplay.textContent = `최종 기록: ${time.toFixed(2)}초`;
     displayRanking();
   }
 
   function displayRanking() {
     results.sort((a, b) => a.time - b.time);
-    let rankingText = "<div style='border-bottom: 2px solid #333; margin-bottom: 10px;'>🏆 <b>TOP 3 결과</b></div>";
-    
+    const typeNames = ["", "밸런스", "선입", "추입"];
+    let rankingText = "<div style='background:#eee; padding:5px;'>🏆 <b>RANKING (TOP 3)</b></div>";
     results.slice(0, 3).forEach((r, i) => {
-      const color = i === 0 ? "#f1c40f" : i === 1 ? "#bdc3c7" : "#e67e22";
-      rankingText += `<div style='color: ${color};'>${i + 1}위: ${r.name} [${typeNames[r.type]}] (${r.time.toFixed(2)}초)</div>`;
+      rankingText += `<div>${i + 1}위: ${r.name} (${typeNames[r.type]}) - ${r.time.toFixed(2)}s</div>`;
     });
-
     if (resultsDisplay) resultsDisplay.innerHTML = rankingText;
-    console.log("%c--- 경기 종료 ---", "color: #e74c3c; font-weight: bold;");
   }
 
   function loop(timestamp) {
@@ -173,14 +149,21 @@ function startRace() {
   animationId = requestAnimationFrame(loop);
 }
 
+/**
+ * [수정] 리셋 함수: 모든 선수를 시작선(50px) 위치로 되돌림
+ */
 function resetRace() {
-  isRaceActive = false; 
+  isRaceActive = false;
   cancelAnimationFrame(animationId);
   lastTime = null;
   time = 0;
   results = [];
   if (timerDisplay) timerDisplay.textContent = "기록: 0.00초";
   if (resultsDisplay) resultsDisplay.innerHTML = "";
-  document.querySelectorAll(".player").forEach(p => p.style.left = "5%");
-  console.log("경기가 초기화되었습니다.");
+  
+  // 모든 주자 위치를 시작선(50px)으로 초기화
+  document.querySelectorAll(".player").forEach(p => {
+    p.style.left = "50px";
+  });
+  console.log("경기장이 리셋되었습니다. (시작점: 50px)");
 }
