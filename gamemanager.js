@@ -1,11 +1,10 @@
 /**
- * [설정 데이터]
- * 능력치 평균에 따른 기준 기록 보간 테이블
+ * [설정 데이터] 능력치 기반 기준 기록 테이블
  */
 const recordTable = { 70: 11.0, 80: 10.5, 90: 9.5, 100: 8.5 };
 
 /**
- * [함수] 능력치 기반 예상 시간 계산
+ * [함수] 능력치 기반 예상 시간 계산 (기본 베이스)
  */
 function estimateTime(stamina, speed, accel) {
   const score = (stamina + speed + accel) / 3;
@@ -20,11 +19,10 @@ function estimateTime(stamina, speed, accel) {
 }
 
 /**
- * [함수] 상대 선수 능력치 랜덤 생성 (내 능력치의 50% ~ 150%)
+ * [함수] 상대 선수 능력치 랜덤 생성 (50% ~ 150%)
  */
 function randomOpponentStats(baseStats) {
   function randInRange(value) {
-    // 0.5 ~ 1.5 사이의 난수 적용
     const multiplier = 0.5 + (Math.random() * 1.0); 
     return Math.floor(value * multiplier);
   }
@@ -35,13 +33,13 @@ function randomOpponentStats(baseStats) {
   };
 }
 
-// 전역 변수 설정
+// 전역 변수
 let animationId;
 let lastTime;
 let time;
 let runners = [];
 let results = [];
-let isRaceActive = false; // 경기 진행 상태 플래그 (타이머 정지 핵심)
+let isRaceActive = false;
 
 const timerDisplay = document.getElementById("timer");
 const resultsDisplay = document.getElementById("results");
@@ -50,49 +48,51 @@ const resultsDisplay = document.getElementById("results");
  * [메인 함수] 경기 시작
  */
 function startRace() {
-  // 1. 초기화 및 상태 설정
   time = 0;
   lastTime = null;
   results = [];
   isRaceActive = true; 
   if (resultsDisplay) resultsDisplay.innerHTML = "";
 
-  // 2. 플레이어 및 상대 선수 객체 생성
-  const mainRunner = {
+  const typeNames = ["", "밸런스", "초반스퍼트(선입)", "후반역전(추입)"];
+
+  // 1. 플레이어 생성 (기본 밸런스형)
+  runners = [{
     name: "플레이어(나)",
     element: document.querySelector(".player.main"),
-    stats: mainPlayer, // player.js의 mainPlayer 참조
+    stats: mainPlayer,
     distance: 0,
+    velocity: 0,
+    driveType: 1, // 플레이어는 밸런스형 고정 (원할 시 랜덤 변경 가능)
     finished: false
-  };
-  
-  runners = [mainRunner];
+  }];
 
+  // 2. 상대 선수 생성 (특성 랜덤 배정)
   const opponents = document.querySelectorAll(".player.opponent");
-  
-  console.log("%c--- 🏃 경기 시작: 선수 정보 (50%~150%) ---", "color: #2ecc71; font-weight: bold; font-size: 14px;");
-  console.log(`[나] 체력:${mainPlayer.stamina}, 속도:${mainPlayer.speed}, 가속:${mainPlayer.accel}`);
+  console.log("%c--- 🏃 특성 기반 레이스 시작 (50%~150%) ---", "color: #3498db; font-weight: bold; font-size: 14px;");
 
   opponents.forEach((opponent, index) => {
     const stats = randomOpponentStats(mainPlayer);
-    const opponentName = `상대${index + 1}`;
+    const driveType = Math.floor(Math.random() * 3) + 1; // 1, 2, 3 중 랜덤
     
     runners.push({
-      name: opponentName,
+      name: `상대${index + 1}`,
       element: opponent,
       stats: stats,
       distance: 0,
+      velocity: 0,
+      driveType: driveType,
       finished: false
     });
 
-    console.log(`[${opponentName}] 체력:${stats.stamina}, 속도:${stats.speed}, 가속:${stats.accel}`);
+    console.log(`[상대${index + 1}] 타입: ${typeNames[driveType]} | 스탯합: ${stats.stamina + stats.speed + stats.accel}`);
   });
 
   /**
-   * 내부 업데이트 루프
+   * 실시간 업데이트 루프
    */
   function update(deltaTime) {
-    if (!isRaceActive) return; // 정지 상태면 로직 중단
+    if (!isRaceActive) return;
 
     time += deltaTime;
     timerDisplay.textContent = `기록: ${time.toFixed(2)}초`;
@@ -100,19 +100,39 @@ function startRace() {
     for (let runner of runners) {
       if (runner.finished) continue;
 
-      const expectedTime = estimateTime(runner.stats.stamina, runner.stats.speed, runner.stats.accel);
-      const avgVelocity = track.lengthPx / expectedTime;
-      runner.distance += avgVelocity * deltaTime;
-      
-      // 위치 업데이트
+      // --- [특성 엔진] 주행 지점에 따른 가속도 보정 ---
+      let accelMultiplier = 1.0;
+      const progress = runner.distance / track.lengthPx; // 0.0 ~ 1.0
+
+      if (runner.driveType === 2) { 
+        // 초반 스퍼트형: 40% 지점까지 강력, 이후 급감
+        accelMultiplier = progress < 0.4 ? 1.9 : 0.55;
+      } else if (runner.driveType === 3) { 
+        // 후반 역전형: 60% 지점까지 대기, 이후 폭발
+        accelMultiplier = progress < 0.6 ? 0.45 : 2.3;
+      } else { 
+        // 밸런스형: 전 구간 안정적
+        accelMultiplier = 1.15;
+      }
+
+      // 물리 공식 적용
+      const acceleration = (runner.stats.accel / 45) * accelMultiplier;
+      const maxVelocity = (runner.stats.speed * 2.3);
+
+      // 속도 증가 (최고 속도 제한)
+      if (runner.velocity < maxVelocity) {
+        runner.velocity += acceleration;
+      }
+
+      // 실제 이동
+      runner.distance += runner.velocity * deltaTime;
       runner.element.style.left = `calc(5% + ${runner.distance}px)`;
 
-      // 결승선 통과 체크
+      // 골인 체크
       if (runner.distance >= track.lengthPx) {
         runner.finished = true;
-        results.push({ name: runner.name, time: time });
+        results.push({ name: runner.name, time: time, type: runner.driveType });
 
-        // 3명 통과 시 즉시 종료
         if (results.length >= 3) {
           stopRace();
           return; 
@@ -121,46 +141,31 @@ function startRace() {
     }
   }
 
-  /**
-   * 경기 정지 처리
-   */
   function stopRace() {
     isRaceActive = false; 
     cancelAnimationFrame(animationId); 
-    
-    // 최종 기록 화면 고정
     timerDisplay.textContent = `최종 기록: ${time.toFixed(2)}초`;
     displayRanking();
   }
 
-  /**
-   * 결과 출력
-   */
   function displayRanking() {
     results.sort((a, b) => a.time - b.time);
-    let rankingText = "<div style='border-bottom: 2px solid #333; margin-bottom: 10px; padding-bottom: 5px;'>🏆 <b>경기 결과 (TOP 3)</b></div>";
+    let rankingText = "<div style='border-bottom: 2px solid #333; margin-bottom: 10px;'>🏆 <b>TOP 3 결과</b></div>";
     
     results.slice(0, 3).forEach((r, i) => {
-      const color = i === 0 ? "#f1c40f" : i === 1 ? "#bdc3c7" : "#e67e22"; // 금, 은, 동 색상
-      rankingText += `<div style='color: ${color}; font-weight: bold;'>${i + 1}위: ${r.name} (${r.time.toFixed(2)}초)</div>`;
+      const color = i === 0 ? "#f1c40f" : i === 1 ? "#bdc3c7" : "#e67e22";
+      rankingText += `<div style='color: ${color};'>${i + 1}위: ${r.name} [${typeNames[r.type]}] (${r.time.toFixed(2)}초)</div>`;
     });
 
-    if (resultsDisplay) {
-      resultsDisplay.innerHTML = rankingText;
-    }
+    if (resultsDisplay) resultsDisplay.innerHTML = rankingText;
     console.log("%c--- 경기 종료 ---", "color: #e74c3c; font-weight: bold;");
   }
 
-  /**
-   * 애니메이션 루프
-   */
   function loop(timestamp) {
     if (!isRaceActive) return;
-
     if (!lastTime) lastTime = timestamp;
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
-    
     update(deltaTime);
     animationId = requestAnimationFrame(loop);
   }
@@ -168,22 +173,14 @@ function startRace() {
   animationId = requestAnimationFrame(loop);
 }
 
-/**
- * 리셋 함수
- */
 function resetRace() {
   isRaceActive = false; 
   cancelAnimationFrame(animationId);
   lastTime = null;
   time = 0;
   results = [];
-  
   if (timerDisplay) timerDisplay.textContent = "기록: 0.00초";
   if (resultsDisplay) resultsDisplay.innerHTML = "";
-  
-  document.querySelectorAll(".player").forEach(p => {
-    p.style.left = "5%";
-  });
-  
+  document.querySelectorAll(".player").forEach(p => p.style.left = "5%");
   console.log("경기가 초기화되었습니다.");
 }
