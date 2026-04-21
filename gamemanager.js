@@ -1,4 +1,4 @@
-// 전역 변수 및 설정
+// 전역 변수 설정
 let animationId;
 let lastTime;
 let time;
@@ -31,36 +31,47 @@ function startRace() {
   isRaceActive = true;
   if (resultsDisplay) resultsDisplay.innerHTML = "";
 
-  const typeNames = ["", "밸런스", "초반스퍼트(선입)", "후반역전(추입)"];
-  
-  // [수정] 트랙 길이를 1000px로 고정 참조
-  const trackLength = 1000; 
-  const startPos = 50; // CSS의 .start-line 위치 (50px)
+  const trackLength = 1000; // 주행 거리 1000px
+  const startPos = 50;     // 시작선 위치 50px
+  const typeNames = ["", "밸런스", "선입(초반)", "추입(후반)"];
 
-  // 1. 선수 객체 생성 함수
+  // 선수 객체 생성 템플릿
   const createRunner = (name, element, stats, driveType) => ({
     name,
     element,
     stats,
     driveType,
-    distance: 0, // 달린 거리 (0~1000)
-    velocity: 0,
-    currentStamina: stats.stamina * 8, // 체력 수치는 추후 조정 예정
-    maxStamina: stats.stamina * 8,
-    finished: false
+    distance: 0,
+    velocity: 0, 
+    currentStamina: stats.stamina * 11, // 1000px 트랙에 맞춘 체력 배율
+    maxStamina: stats.stamina * 11,
+    finished: false,
+    reactionTime: 0
   });
 
-  // 플레이어 및 상대 생성
-  runners = [createRunner("플레이어(나)", document.querySelector(".player.main"), mainPlayer, 1)];
+  // 1. 플레이어 생성 (초기 속도 0 - 추후 키 입력 이벤트로 부여)
+  const player = createRunner("플레이어(나)", document.querySelector(".player.main"), mainPlayer, 1);
+  runners = [player];
 
+  // 2. 상대 선수 생성 (랜덤 반응 속도 적용)
   const opponents = document.querySelectorAll(".player.opponent");
-  console.log("%c--- 🏃 트랙 1000px 레이스 시작 ---", "color: #2ecc71; font-weight: bold;");
+  console.log("%c--- 🏁 레이스 시작! (반응 속도 체크) ---", "color: #8e44ad; font-weight: bold;");
 
   opponents.forEach((opponent, index) => {
     const stats = randomOpponentStats(mainPlayer);
     const driveType = Math.floor(Math.random() * 3) + 1;
-    runners.push(createRunner(`상대${index + 1}`, opponent, stats, driveType));
-    console.log(`[상대${index + 1}] 타입: ${typeNames[driveType]}`);
+    
+    // 0.1s ~ 0.5s 사이의 랜덤 반응 속도
+    const reaction = Math.random() * 0.4 + 0.1;
+    // 반응 속도에 따른 초기 속도 보간 (0.1s -> 10, 0.5s -> 5)
+    const initV = 11.25 - (12.5 * reaction);
+
+    const runner = createRunner(`상대${index + 1}`, opponent, stats, driveType);
+    runner.velocity = initV; 
+    runner.reactionTime = reaction;
+    
+    runners.push(runner);
+    console.log(`[상대${index + 1}] 반응: ${reaction.toFixed(3)}s | 초기속도: ${initV.toFixed(2)} | 타입: ${typeNames[driveType]}`);
   });
 
   /**
@@ -75,41 +86,49 @@ function startRace() {
     for (let runner of runners) {
       if (runner.finished) continue;
 
+      // 플레이어가 아직 반응하지 않았다면 (velocity가 0이면) 대기
+      if (runner.name === "플레이어(나)" && runner.velocity === 0) continue;
+
       const dist = runner.distance;
       let staminaDrainRate = 1.0;
 
-      // [특성 반영] 주행 지점 비율에 따른 체력 소모 (trackLength 기준 자동 계산)
+      // [특성 반영] 주행 지점 비율에 따른 체력 소모율 변화
       if (runner.driveType === 2 && dist < trackLength * 0.4) {
-        staminaDrainRate = 2.5;
+        staminaDrainRate = 2.5; // 선입형: 초반 스퍼트
       } else if (runner.driveType === 3 && dist > trackLength * 0.6) {
-        staminaDrainRate = 3.5;
+        staminaDrainRate = 3.5; // 추입형: 후반 역전
       }
 
-      // [체력-속도 매커니즘]
+      // [체력-속도 엔진]
       if (runner.currentStamina > 0) {
+        // 이동한 만큼 체력 감소
         const moveStep = runner.velocity * deltaTime;
         runner.currentStamina -= (moveStep * staminaDrainRate);
 
+        // 소모된 체력에 비례하여 가속도(속도) 생성
         const consumed = runner.maxStamina - runner.currentStamina;
-        let targetVelocity = (consumed * 0.8); 
+        
+        // 초기 속도(반응속도 기반) + 체력 소모 가속
+        let targetVelocity = runner.velocity + (consumed * 0.8); 
+
+        // 속도 제한: 능력치 기반 최대치
         const limit = runner.stats.speed * 2.5; 
         runner.velocity = Math.min(targetVelocity, limit);
       } else {
-        // 탈진 상태
+        // 체력 고갈 시 감속 (탈진)
         runner.currentStamina = 0;
         runner.velocity *= 0.97;
         if (runner.velocity < 15) runner.velocity = 15;
       }
 
-      // [핵심 수정] 실제 위치 업데이트: 시작 지점(50px) + 달린 거리
+      // 위치 업데이트
       runner.distance += runner.velocity * deltaTime;
       runner.element.style.left = `${startPos + runner.distance}px`;
 
-      // [핵심 수정] 골인 체크: 달린 거리가 1000px에 도달했는지 확인
+      // 결승선 통과 체크
       if (runner.distance >= trackLength) {
         runner.finished = true;
-        // 정확히 결승선 위치에 고정
-        runner.element.style.left = `${startPos + trackLength}px`; 
+        runner.element.style.left = `${startPos + trackLength}px`;
         results.push({ name: runner.name, time: time, type: runner.driveType });
 
         if (results.length >= 3) {
@@ -129,10 +148,9 @@ function startRace() {
 
   function displayRanking() {
     results.sort((a, b) => a.time - b.time);
-    const typeNames = ["", "밸런스", "선입", "추입"];
-    let rankingText = "<div style='background:#eee; padding:5px;'>🏆 <b>RANKING (TOP 3)</b></div>";
+    let rankingText = "<div style='background:#f9f9f9; padding:8px; border-bottom:2px solid #ccc;'>🏆 <b>경기 결과 (TOP 3)</b></div>";
     results.slice(0, 3).forEach((r, i) => {
-      rankingText += `<div>${i + 1}위: ${r.name} (${typeNames[r.type]}) - ${r.time.toFixed(2)}s</div>`;
+      rankingText += `<div style='padding:4px;'>${i + 1}위: ${r.name} <small style='color:gray;'>[${typeNames[r.type]}]</small> - ${r.time.toFixed(2)}초</div>`;
     });
     if (resultsDisplay) resultsDisplay.innerHTML = rankingText;
   }
@@ -150,7 +168,7 @@ function startRace() {
 }
 
 /**
- * [수정] 리셋 함수: 모든 선수를 시작선(50px) 위치로 되돌림
+ * 리셋 함수
  */
 function resetRace() {
   isRaceActive = false;
@@ -161,9 +179,8 @@ function resetRace() {
   if (timerDisplay) timerDisplay.textContent = "기록: 0.00초";
   if (resultsDisplay) resultsDisplay.innerHTML = "";
   
-  // 모든 주자 위치를 시작선(50px)으로 초기화
   document.querySelectorAll(".player").forEach(p => {
-    p.style.left = "50px";
+    p.style.left = "50px"; // 시작선 위치로 초기화
   });
-  console.log("경기장이 리셋되었습니다. (시작점: 50px)");
+  console.log("트랙이 리셋되었습니다.");
 }
