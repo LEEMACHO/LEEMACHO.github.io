@@ -23,7 +23,7 @@ function estimateTime(stamina, speed, accel) {
  */
 function randomOpponentStats(baseStats) {
   function randInRange(value) {
-    const multiplier = 0.5 + (Math.random() * 1.0); 
+    const multiplier = 0.8 + (Math.random() * 0.4); 
     return Math.floor(value * multiplier);
   }
   return {
